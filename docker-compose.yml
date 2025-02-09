@@ -1,0 +1,21 @@
+version: "3.8"
+services:
+  db:
+    image: supabase/postgres
+    ports:
+      - "5435:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+
+  api:
+    image: supabase/edge-runtime
+    ports:
+      - "54321:8000"
+    environment:
+      SUPABASE_URL: http://api:8000
+      SUPABASE_ANON_KEY: your-anon-key
+      SUPABASE_SERVICE_ROLE_KEY: your-service-role-key
+    depends_on:
+      - db
