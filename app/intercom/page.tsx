@@ -4,6 +4,7 @@ import { createClient } from "@/utils/supabase/client";
 import { useCallback, useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
 
 interface IntercomSettings {
   enabled: boolean;
@@ -84,7 +85,7 @@ export default function IntercomPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-4">
+    <div className="max-w-2xl mx-auto p-4 border border-gray-50 dark:border-gray-800 rounded-md">
       <h1 className="text-2xl font-bold mb-6">Intercom Settings</h1>
 
       {error && (
@@ -106,13 +107,12 @@ export default function IntercomPage() {
           />
         </div>
 
-        <button
+        <Button
           type="submit"
           disabled={saving}
-          className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
         >
           {saving ? 'Saving...' : 'Save Settings'}
-        </button>
+        </Button>
       </form>
     </div>
   );

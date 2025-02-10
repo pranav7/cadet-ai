@@ -249,6 +249,16 @@ policy = "per_worker"
 # Port to attach the Chrome inspector for debugging edge functions.
 inspector_port = 8083
 
+[functions.process]
+enabled = true
+import_map = "./functions/deno.json"
+entrypoint = "./functions/process/index.ts"
+
+[functions.embed]
+enabled = true
+import_map = "./functions/deno.json"
+entrypoint = "./functions/embed/index.ts"
+
 # Use these configurations to customize your Edge Function.
 [functions.intercom-conversation-importer]
 enabled = true

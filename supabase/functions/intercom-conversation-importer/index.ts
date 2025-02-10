@@ -1,55 +1,12 @@
 import { createClient } from "@supabase/supabase-js";
-import { htmlToMarkdown } from "../_lib/markdown-converter.ts";
-import { IntercomConversation } from "./types.ts";
-import { getIntercomConversations } from "./intercom-api.ts";
+import {
+  conversationToMarkdown,
+  getConversationDetails,
+  getIntercomConversations,
+} from "./intercom-api.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL");
 const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
-
-async function getConversationDetails(
-  apiKey: string,
-  conversationId: string,
-): Promise<IntercomConversation> {
-  const url = `https://api.intercom.io/conversations/${conversationId}`;
-  const response = await fetch(url, {
-    headers: {
-      "Authorization": `Bearer ${apiKey}`,
-      "Accept": "application/json",
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(
-      `Failed to fetch conversation details: ${response.statusText}`,
-    );
-  }
-
-  return response.json();
-}
-
-function conversationToMarkdown(conversation: IntercomConversation): string {
-  const messages = conversation.conversation_parts.conversation_parts;
-  let markdown = `# Conversation ${conversation.id}\n\n`;
-  markdown += `Created: ${
-    new Date(conversation.created_at * 1000).toISOString()
-  }\n\n`;
-
-  for (const message of messages) {
-    if (!message?.body) continue;
-
-    const timestamp = new Date(message.created_at * 1000).toISOString();
-    const author = `${message.author.name} (${
-      message.author.type === "bot" ? "Bot" : "Unknown"
-    })`;
-    const bodyMarkdown = htmlToMarkdown(message.body);
-
-    if (bodyMarkdown) {
-      markdown += `## ${author} (${timestamp})\n\n${bodyMarkdown}\n\n`;
-    }
-  }
-
-  return markdown;
-}
 
 const BATCH_SIZE = 50;
 const MAX_BATCHES = 5;
@@ -75,7 +32,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
     auth: { persistSession: false },
   });
 
-  const { user_id } = await req.json();
+  const { user_id, created_after } = await req.json();
+  const createdAfterDate = created_after ? new Date(created_after) : undefined;
 
   const { data: settings, error: settingsError } = await supabase
     .from("intercom_settings")
@@ -100,6 +58,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
             settings.api_key,
             startingAfter,
             BATCH_SIZE,
+            createdAfterDate,
           );
 
         for (const conversation of conversations) {
@@ -210,13 +169,11 @@ addEventListener("beforeunload", (event) => {
 });
 
 /* To invoke locally:
-
   1. Run `supabase start` (see: https://supabase.com/docs/reference/cli/supabase-start)
   2. Make an HTTP request:
 
   curl -i --location --request POST 'http://127.0.0.1:54321/functions/v1/intercom-conversation-importer' \
     --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0' \
     --header 'Content-Type: application/json' \
-    --data '{"user_id": "0ef89473-7fa0-4aa3-a4af-ddafaf2cc624"}'
-
+    --data '{"user_id": "1e6c6180-dadc-4c22-8a5c-3ea605bc6da6", "created_after": "2024-01-01"}'
 */
