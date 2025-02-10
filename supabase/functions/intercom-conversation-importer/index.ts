@@ -1,63 +1,10 @@
 import { createClient } from "@supabase/supabase-js";
-import TurndownService from "turndown";
+import { htmlToMarkdown } from "../_lib/markdown-converter.ts";
+import { IntercomConversation } from "./types.ts";
+import { getIntercomConversations } from "./intercom-api.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL");
 const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
-
-interface IntercomMessage {
-  id: string;
-  body: string;
-  type: string;
-  created_at: number;
-  author: {
-    name: string;
-    type: string;
-  };
-}
-
-interface IntercomConversation {
-  id: string;
-  created_at: number;
-  updated_at: number;
-  title: string;
-  conversation_parts: {
-    conversation_parts: IntercomMessage[];
-  };
-}
-
-async function getIntercomConversations(
-  apiKey: string,
-  startingAfter?: string | null,
-): Promise<
-  { conversations: IntercomConversation[]; nextStartingAfter: string | null }
-> {
-  const url = "https://api.intercom.io/conversations";
-  const params = new URLSearchParams({
-    per_page: "50",
-  });
-  if (startingAfter) {
-    params.append("starting_after", startingAfter);
-  }
-
-  const response = await fetch(`${url}?${params}`, {
-    headers: {
-      "Authorization": `Bearer ${apiKey}`,
-      "Accept": "application/json",
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch conversations: ${response.statusText}`);
-  }
-
-  const data = await response.json();
-  const nextStartingAfter = data.pages?.next?.starting_after || null;
-
-  return {
-    conversations: data.conversations,
-    nextStartingAfter,
-  };
-}
 
 async function getConversationDetails(
   apiKey: string,
@@ -80,31 +27,6 @@ async function getConversationDetails(
   return response.json();
 }
 
-function htmlToMarkdown(html: string): string {
-  try {
-    const turndownService = new TurndownService({
-      headingStyle: "atx",
-      codeBlockStyle: "fenced",
-      emDelimiter: "_",
-      bulletListMarker: "-",
-    });
-
-    // Preserve line breaks
-    turndownService.addRule("lineBreaks", {
-      filter: ["br"],
-      replacement: () => "\n",
-    });
-
-    return turndownService.turndown(html);
-  } catch (e) {
-    console.warn(
-      "Failed to convert HTML to Markdown, returning raw content:",
-      e,
-    );
-    return html;
-  }
-}
-
 function conversationToMarkdown(conversation: IntercomConversation): string {
   const messages = conversation.conversation_parts.conversation_parts;
   let markdown = `# Conversation ${conversation.id}\n\n`;
@@ -113,51 +35,44 @@ function conversationToMarkdown(conversation: IntercomConversation): string {
   }\n\n`;
 
   for (const message of messages) {
+    if (!message?.body) continue;
+
     const timestamp = new Date(message.created_at * 1000).toISOString();
-    const author = message.author.name ||
-      (message.author.type === "bot" ? "Bot" : "Unknown");
+    const author = `${message.author.name} (${
+      message.author.type === "bot" ? "Bot" : "Unknown"
+    })`;
     const bodyMarkdown = htmlToMarkdown(message.body);
-    markdown += `## ${author} (${timestamp})\n\n${bodyMarkdown}\n\n`;
+
+    if (bodyMarkdown) {
+      markdown += `## ${author} (${timestamp})\n\n${bodyMarkdown}\n\n`;
+    }
   }
 
   return markdown;
 }
 
+const BATCH_SIZE = 50;
+const MAX_BATCHES = 5;
+
 Deno.serve(async (req: Request): Promise<Response> => {
   if (!supabaseUrl || !supabaseAnonKey) {
     return new Response(
-      JSON.stringify({
-        error: "Missing environment variables.",
-      }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      },
+      JSON.stringify({ error: "Missing environment variables." }),
+      { status: 500, headers: { "Content-Type": "application/json" } },
     );
   }
 
   const authorization = req.headers.get("Authorization");
   if (!authorization) {
     return new Response(
-      JSON.stringify({
-        error: "No authorization header",
-      }),
-      {
-        status: 401,
-        headers: { "Content-Type": "application/json" },
-      },
+      JSON.stringify({ error: "No authorization header" }),
+      { status: 401, headers: { "Content-Type": "application/json" } },
     );
   }
 
   const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-    global: {
-      headers: {
-        authorization,
-      },
-    },
-    auth: {
-      persistSession: false,
-    },
+    global: { headers: { authorization } },
+    auth: { persistSession: false },
   });
 
   const { user_id } = await req.json();
@@ -167,90 +82,131 @@ Deno.serve(async (req: Request): Promise<Response> => {
     .select("*")
     .single();
 
-  console.log("settings", settings);
-
   if (settingsError || !settings?.api_key) {
     throw new Error("Intercom not configured or enabled for this account", {
       cause: JSON.stringify(settingsError),
     });
   }
 
-  let totalProcessed = 0;
-  let startingAfter: string | null = null;
+  EdgeRuntime.waitUntil((async () => {
+    let totalProcessed = 0;
+    let startingAfter: string | null = null;
+    let batchCount = 0;
 
-  while (true) {
-    const { conversations, nextStartingAfter } = await getIntercomConversations(
-      settings.api_key,
-      startingAfter,
-    );
+    try {
+      while (batchCount < MAX_BATCHES) {
+        const { conversations, nextStartingAfter } =
+          await getIntercomConversations(
+            settings.api_key,
+            startingAfter,
+            BATCH_SIZE,
+          );
 
-    for (const conversation of conversations) {
-      console.log(`[${conversation.id}] Processing conversation`);
-      console.log(`[${conversation.id}] Finding existing documents if any`);
-      const { data: existing } = await supabase
-        .from("documents")
-        .select("id")
-        .eq("source", 1)
-        .eq("metadata->external_id", conversation.id)
-        .maybeSingle();
+        for (const conversation of conversations) {
+          console.log(`[${conversation.id}] Processing conversation`);
+          console.log(`[${conversation.id}] Finding existing documents if any`);
+          const { data: existing } = await supabase
+            .from("documents")
+            .select("id")
+            .eq("source", 1)
+            .eq("metadata->external_id", conversation.id)
+            .maybeSingle();
 
-      if (existing) {
-        console.log(
-          `[${conversation.id}] Found existing document for conversation, skipping`,
-        );
-        continue;
+          if (existing) {
+            console.log(
+              `[${conversation.id}] Found existing document for conversation, skipping ...`,
+            );
+            continue;
+          }
+
+          console.log(`[${conversation.id}] Fetching conversation details`);
+          const details = await getConversationDetails(
+            settings.api_key,
+            conversation.id,
+          );
+
+          console.log(
+            `[${conversation.id}] Converting conversation to markdown`,
+          );
+          const content = conversationToMarkdown(details);
+
+          console.log(
+            `[${conversation.id}] Inserting conversation into database`,
+          );
+          const { error: insertError } = await supabase
+            .from("documents")
+            .insert({
+              name: details.title || `Intercom conversation ${conversation.id}`,
+              created_by: user_id,
+              content,
+              source: 1,
+              created_at: new Date(details.created_at * 1000).toISOString(),
+              metadata: {
+                external_id: conversation.id,
+                created_at: details.created_at,
+                updated_at: details.updated_at,
+              },
+            });
+
+          if (insertError) {
+            console.error(
+              `[${conversation.id}] Failed to insert conversation:`,
+              insertError,
+            );
+          } else {
+            totalProcessed++;
+          }
+        }
+
+        if (!nextStartingAfter) break;
+        startingAfter = nextStartingAfter;
+        batchCount++;
+
+        // Store the cursor for the next run
+        await supabase
+          .from("import_cursors")
+          .upsert({
+            user_id,
+            cursor: nextStartingAfter,
+            last_processed: new Date().toISOString(),
+          });
       }
 
-      console.log(`[${conversation.id}] Fetching conversation details`);
-      const details = await getConversationDetails(
-        settings.api_key,
-        conversation.id,
-      );
-
-      console.log(`[${conversation.id}] Converting conversation to markdown`);
-      const content = conversationToMarkdown(details);
-
-      console.log(`[${conversation.id}] Inserting conversation into database`);
-      const { error: insertError } = await supabase
-        .from("documents")
-        .insert({
-          name: details.title || `Intercom conversation ${conversation.id}`,
-          created_by: user_id,
-          content,
-          source: 1,
-          metadata: {
-            external_id: conversation.id,
-            created_at: details.created_at,
-            updated_at: details.updated_at,
+      // If there's more data to process, schedule the next run
+      if (startingAfter) {
+        await fetch(
+          `${supabaseUrl}/functions/v1/intercom-conversation-importer`,
+          {
+            method: "POST",
+            headers: {
+              "Authorization": authorization,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ user_id }),
           },
-        });
-
-      if (insertError) {
-        console.error(
-          `[${conversation.id}] Failed to insert conversation:`,
-          insertError,
         );
-      } else {
-        totalProcessed++;
       }
-    }
 
-    if (!nextStartingAfter) {
-      break;
+      console.log(
+        `Batch completed. Processed ${totalProcessed} conversations.`,
+      );
+    } catch (error) {
+      console.error("Background task failed:", error);
     }
-    startingAfter = nextStartingAfter;
-  }
+  })());
 
+  // Return immediately while processing continues in the background
   return new Response(
     JSON.stringify({
       success: true,
-      conversations_processed: totalProcessed,
+      message: "Import started in background",
     }),
-    {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    },
+    { status: 202, headers: { "Content-Type": "application/json" } },
   );
+});
+
+addEventListener("beforeunload", (event) => {
+  console.log("Function will be shutdown due to", event);
 });
 
 /* To invoke locally:
@@ -261,6 +217,6 @@ Deno.serve(async (req: Request): Promise<Response> => {
   curl -i --location --request POST 'http://127.0.0.1:54321/functions/v1/intercom-conversation-importer' \
     --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0' \
     --header 'Content-Type: application/json' \
-    --data '{"user_id":"c67dadc9-77d8-4a70-9167-e88783a60385"}'
+    --data '{"user_id": "0ef89473-7fa0-4aa3-a4af-ddafaf2cc624"}'
 
 */

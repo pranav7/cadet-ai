@@ -245,15 +245,16 @@ enabled = false
 enabled = true
 # Configure one of the supported request policies: `oneshot`, `per_worker`.
 # Use `oneshot` for hot reload, or `per_worker` for load testing.
-policy = "oneshot"
+policy = "per_worker"
 # Port to attach the Chrome inspector for debugging edge functions.
 inspector_port = 8083
 
 # Use these configurations to customize your Edge Function.
-# [functions.MY_FUNCTION_NAME]
-# enabled = true
-# verify_jwt = true
-# import_map = "./functions/MY_FUNCTION_NAME/deno.json"
+[functions.intercom-conversation-importer]
+enabled = true
+verify_jwt = false
+import_map = "./functions/deno.json"
+entrypoint = "./functions/intercom-conversation-importer/index.ts"
 # Uncomment to specify a custom file path to the entrypoint.
 # Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
 # entrypoint = "./functions/MY_FUNCTION_NAME/index.ts"
