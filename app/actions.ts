@@ -11,9 +11,8 @@ export async function signUpAction(formData: FormData) {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
   const name = formData.get("name") as string;
-  const accountName = formData.get("accountName") as string;
 
-  const { data: authData, error: authError } = await supabase.auth.signUp({
+  const { data: authUser, error: authError } = await supabase.auth.signUp({
     email,
     password,
     options: {
@@ -23,45 +22,12 @@ export async function signUpAction(formData: FormData) {
     },
   });
 
-  if (authError || !authData.user) {
+  if (authError || !authUser) {
     return encodedRedirect(
       "error",
       "/sign-up",
       authError?.message || "Error creating user",
     );
-  }
-
-  const { data: accountData, error: accountError } = await supabase.rpc(
-    "create_account",
-    {
-      name: accountName,
-      slug: accountName.toLowerCase().replace(/ /g, "-"),
-    },
-  );
-
-  if (accountError || !accountData) {
-    await supabase.auth.admin.deleteUser(authData.user.id);
-    return encodedRedirect(
-      "error",
-      "/sign-up",
-      accountError?.message || "Error creating account",
-    );
-  }
-
-  const { error: accountUserError } = await supabase
-    .from("account_users")
-    .insert([
-      {
-        account_id: accountData.id,
-        user_id: authData.user.id,
-        role: "owner",
-      },
-    ]);
-
-  if (accountUserError) {
-    await supabase.auth.admin.deleteUser(authData.user.id);
-    await supabase.from("accounts").delete().eq("id", accountData.id);
-    return encodedRedirect("error", "/sign-up", accountUserError.message);
   }
 
   return redirect("/protected");
