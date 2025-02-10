@@ -13,13 +13,9 @@ alter table private.intercom_settings enable row level security;
 
 create policy "Users can manage their intercom settings"
   on private.intercom_settings
-  for all
+  for all to authenticated
   using (
-    auth.uid() in (
-      select created_by
-      from private.intercom_settings
-      where account_id = intercom_settings.account_id
-    )
+    (select account_id from auth.users where id = auth.uid()) = account_id
   );
 
 create trigger set_timestamp
