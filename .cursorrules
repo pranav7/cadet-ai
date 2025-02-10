@@ -1,0 +1,7 @@
+# Project Structure
+
+NextJS app with a supabase backend.
+
+# Guidelines
+
+- Alays use absolute imports, no relative imports.

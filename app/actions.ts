@@ -5,44 +5,72 @@ import { createClient } from "@/utils/supabase/server";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-export const signUpAction = async (formData: FormData) => {
-  const email = formData.get("email")?.toString();
-  const password = formData.get("password")?.toString();
+export async function signUpAction(formData: FormData) {
   const supabase = await createClient();
-  const origin = (await headers()).get("origin");
 
-  if (!email || !password) {
-    return encodedRedirect(
-      "error",
-      "/sign-up",
-      "Email and password are required",
-    );
-  }
+  const email = formData.get("email") as string;
+  const password = formData.get("password") as string;
+  const name = formData.get("name") as string;
+  const accountName = formData.get("accountName") as string;
 
-  const { error } = await supabase.auth.signUp({
+  const { data: authData, error: authError } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      emailRedirectTo: `${origin}/auth/callback`,
+      data: {
+        full_name: name,
+      },
     },
   });
 
-  if (error) {
-    console.error(error.code + " " + error.message);
-    return encodedRedirect("error", "/sign-up", error.message);
-  } else {
+  if (authError || !authData.user) {
     return encodedRedirect(
-      "success",
+      "error",
       "/sign-up",
-      "Thanks for signing up! Please check your email for a verification link.",
+      authError?.message || "Error creating user",
     );
   }
-};
+
+  const { data: accountData, error: accountError } = await supabase.rpc(
+    "create_account",
+    {
+      name: accountName,
+      slug: accountName.toLowerCase().replace(/ /g, "-"),
+    },
+  );
+
+  if (accountError || !accountData) {
+    await supabase.auth.admin.deleteUser(authData.user.id);
+    return encodedRedirect(
+      "error",
+      "/sign-up",
+      accountError?.message || "Error creating account",
+    );
+  }
+
+  const { error: accountUserError } = await supabase
+    .from("account_users")
+    .insert([
+      {
+        account_id: accountData.id,
+        user_id: authData.user.id,
+        role: "owner",
+      },
+    ]);
+
+  if (accountUserError) {
+    await supabase.auth.admin.deleteUser(authData.user.id);
+    await supabase.from("accounts").delete().eq("id", accountData.id);
+    return encodedRedirect("error", "/sign-up", accountUserError.message);
+  }
+
+  return redirect("/protected");
+}
 
 export const signInAction = async (formData: FormData) => {
+  const supabase = await createClient();
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
-  const supabase = await createClient();
 
   const { error } = await supabase.auth.signInWithPassword({
     email,
@@ -57,8 +85,8 @@ export const signInAction = async (formData: FormData) => {
 };
 
 export const forgotPasswordAction = async (formData: FormData) => {
-  const email = formData.get("email")?.toString();
   const supabase = await createClient();
+  const email = formData.get("email")?.toString();
   const origin = (await headers()).get("origin");
   const callbackUrl = formData.get("callbackUrl")?.toString();
 
