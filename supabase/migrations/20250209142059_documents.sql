@@ -8,8 +8,10 @@ create table private.documents (
   name text not null,
   account_id uuid not null references basejump.accounts (id),
   content text not null,
+  source integer not null,
   created_by uuid not null references auth.users (id) default auth.uid(),
-  created_at timestamp with time zone not null default now()
+  created_at timestamp with time zone not null default now(),
+  updated_at timestamp with time zone not null default now()
 );
 
 create table private.document_chunks (
@@ -18,7 +20,8 @@ create table private.document_chunks (
   document_id bigint not null references private.documents (id) on delete cascade,
   content text not null,
   embedding vector(384),
-  created_at timestamp with time zone not null default now()
+  created_at timestamp with time zone not null default now(),
+  updated_at timestamp with time zone not null default now()
 );
 
 create index on private.document_chunks using hnsw (embedding vector_ip_ops);
