@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { processMarkdown } from "../_lib/markdown-parser.ts";
+import { TextSplitter } from "../_lib/text-splitter.ts";
 
 // These are automatically injected
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -47,19 +47,25 @@ Deno.serve(async (req: Request): Promise<Response> => {
     );
   }
 
-  const processedMd = processMarkdown(document.content);
+  const splitter = new TextSplitter();
+  const chunks = await splitter.split(document.content);
 
-  const { error } = await supabase.from("private.document_sections").insert(
-    processedMd.sections.map(({ content }) => ({
+  const { data: document_chunks, error } = await supabase
+    .from("private.document_chunks")
+    .insert(chunks.map((chunk) => ({
       document_id,
-      content,
-    })),
+      content: chunk,
+    })))
+    .select();
+
+  console.log(
+    `Saved ${document_chunks?.length} chunks for document ${document_id}`,
   );
 
   if (error) {
     console.error(error);
     return new Response(
-      JSON.stringify({ error: "Failed to save document sections" }),
+      JSON.stringify({ error: "Failed to save document chunks" }),
       {
         status: 500,
         headers: { "Content-Type": "application/json" },
@@ -67,12 +73,5 @@ Deno.serve(async (req: Request): Promise<Response> => {
     );
   }
 
-  console.log(
-    `Saved ${processedMd.sections.length} sections for file '${document.name}'`,
-  );
-
   return new Response(null, {
-    status: 204,
-    headers: { "Content-Type": "application/json" },
-  });
 });

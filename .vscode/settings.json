@@ -20,6 +20,7 @@
     "net"
   ],
   "deno.enable": true,
+  "deno.cacheOnSave": true,
   "deno.importMap": "./supabase/functions/import_map.json",
   "[typescript]": {
     "editor.defaultFormatter": "denoland.vscode-deno"
