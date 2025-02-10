@@ -1,4 +1,4 @@
-create function private.embed()
+create function embed()
 returns trigger
 language plpgsql
 as $$
@@ -33,7 +33,7 @@ end;
 $$;
 
 create trigger embed_document_chunks
-  after insert on private.document_chunks
+  after insert on document_chunks
   referencing new table as inserted
   for each statement
-  execute procedure private.embed('content', 'embedding', 100);
+  execute procedure embed('content', 'embedding', 100);

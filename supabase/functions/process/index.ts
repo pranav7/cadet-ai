@@ -31,7 +31,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const { document_id } = await req.json();
 
   const { data: document } = await supabase
-    .from("private.documents")
+    .from("documents")
     .select()
     .eq("id", document_id)
     .single();
@@ -50,7 +50,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const chunks = await splitter.split(document.content);
 
   const { data: document_chunks, error } = await supabase
-    .from("private.document_chunks")
+    .from("document_chunks")
     .insert(chunks.map((chunk) => ({
       document_id,
       content: chunk,

@@ -1,5 +1,4 @@
 import { createClient } from "@supabase/supabase-js";
-import { Supabase } from "@supabase/ai";
 
 const model = new Supabase.ai.Session("gte-small");
 
