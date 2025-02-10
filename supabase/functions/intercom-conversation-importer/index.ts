@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import TurndownService from "turndown";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL");
 const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
@@ -79,9 +80,34 @@ async function getConversationDetails(
   return response.json();
 }
 
+function htmlToMarkdown(html: string): string {
+  try {
+    const turndownService = new TurndownService({
+      headingStyle: "atx",
+      codeBlockStyle: "fenced",
+      emDelimiter: "_",
+      bulletListMarker: "-",
+    });
+
+    // Preserve line breaks
+    turndownService.addRule("lineBreaks", {
+      filter: ["br"],
+      replacement: () => "\n",
+    });
+
+    return turndownService.turndown(html);
+  } catch (e) {
+    console.warn(
+      "Failed to convert HTML to Markdown, returning raw content:",
+      e,
+    );
+    return html;
+  }
+}
+
 function conversationToMarkdown(conversation: IntercomConversation): string {
   const messages = conversation.conversation_parts.conversation_parts;
-  let markdown = `# ${conversation.title || "Untitled Conversation"}\n\n`;
+  let markdown = `# Conversation ${conversation.id}\n\n`;
   markdown += `Created: ${
     new Date(conversation.created_at * 1000).toISOString()
   }\n\n`;
@@ -90,7 +116,8 @@ function conversationToMarkdown(conversation: IntercomConversation): string {
     const timestamp = new Date(message.created_at * 1000).toISOString();
     const author = message.author.name ||
       (message.author.type === "bot" ? "Bot" : "Unknown");
-    markdown += `## ${author} (${timestamp})\n\n${message.body}\n\n`;
+    const bodyMarkdown = htmlToMarkdown(message.body);
+    markdown += `## ${author} (${timestamp})\n\n${bodyMarkdown}\n\n`;
   }
 
   return markdown;
@@ -140,7 +167,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
     .select("*")
     .single();
 
-  if (settingsError || !settings?.enabled || !settings?.api_key) {
+  console.log("settings", settings);
+
+  if (settingsError || !settings?.api_key) {
     throw new Error("Intercom not configured or enabled for this account", {
       cause: JSON.stringify(settingsError),
     });
@@ -232,6 +261,6 @@ Deno.serve(async (req: Request): Promise<Response> => {
   curl -i --location --request POST 'http://127.0.0.1:54321/functions/v1/intercom-conversation-importer' \
     --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0' \
     --header 'Content-Type: application/json' \
-    --data '{"user_id":"0cba99d7-1d29-4485-b7fd-078b8e742e95"}'
+    --data '{"user_id":"c67dadc9-77d8-4a70-9167-e88783a60385"}'
 
 */

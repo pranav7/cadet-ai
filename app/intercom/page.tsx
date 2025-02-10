@@ -30,7 +30,7 @@ export default function IntercomPage() {
     const { data, error } = await supabase
       .from('intercom_settings')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('created_by', user.id)
       .single();
 
     if (error && error.code !== 'PGRST116') {
@@ -60,17 +60,15 @@ export default function IntercomPage() {
     }
 
     const formData = new FormData(form);
-    const enabled = formData.get('enabled') === 'true';
     const api_key = formData.get('api_key') as string;
 
     const { error } = await supabase
       .from('intercom_settings')
       .upsert({
-        user_id: user.id,
-        enabled,
+        created_by: user.id,
         api_key: api_key || null,
       }, {
-        onConflict: 'user_id'
+        onConflict: 'created_by'
       });
 
     if (error) {
@@ -96,18 +94,6 @@ export default function IntercomPage() {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div>
-          <label className="flex items-center space-x-2">
-            <Checkbox
-              name="enabled"
-              value="true"
-              defaultChecked={settings?.enabled}
-              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-            />
-            <span>Enable Intercom Integration</span>
-          </label>
-        </div>
-
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             API Key
