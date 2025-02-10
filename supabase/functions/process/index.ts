@@ -1,7 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { TextSplitter } from "../_lib/text-splitter.ts";
 
-// These are automatically injected
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
@@ -74,4 +73,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
   }
 
   return new Response(null, {
+    status: 204,
+    headers: { "Content-Type": "application/json" },
+  });
 });
