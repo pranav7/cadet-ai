@@ -1,5 +1,5 @@
-import { IntercomConversation, IntercomPagination } from "./types.ts";
-import { htmlToMarkdown } from "../_lib/markdown-converter.ts";
+import { IntercomConversation } from "./types.ts";
+import { htmlToMarkdown } from "./markdown-converter.ts";
 
 export async function getIntercomConversations(
   apiKey: string,
