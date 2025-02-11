@@ -6,6 +6,8 @@ import {
 } from "./intercom-api.ts";
 import { IntercomConversation } from "./types.ts";
 import { Sources } from "../_lib/constants.ts";
+import { corsHeaders } from '../_lib/cors.ts'
+
 const supabaseUrl = Deno.env.get("SUPABASE_URL");
 const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
 
@@ -13,10 +15,14 @@ const BATCH_SIZE = 10;
 const DELAY_BETWEEN_CONVERSATIONS = 1000; // 1 second delay
 
 Deno.serve(async (req: Request): Promise<Response> => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
+
   if (!supabaseUrl || !supabaseAnonKey) {
     return new Response(
       JSON.stringify({ error: "Missing environment variables." }),
-      { status: 500, headers: { "Content-Type": "application/json" } },
+      { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } },
     );
   }
 
@@ -24,7 +30,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
   if (!authorization) {
     return new Response(
       JSON.stringify({ error: "No authorization header" }),
-      { status: 401, headers: { "Content-Type": "application/json" } },
+      { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } },
     );
   }
 
@@ -184,7 +190,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       success: true,
       message: "Import started in background",
     }),
-    { status: 202, headers: { "Content-Type": "application/json" } },
+    { status: 202, headers: { "Content-Type": "application/json", ...corsHeaders } },
   );
 });
 

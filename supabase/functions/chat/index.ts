@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { codeBlock } from "common-tags";
 import { createOpenAI } from "ai-sdk-openai";
 import { streamText } from "ai";
+import { corsHeaders } from "../_lib/cors.ts";
 
 const openai = createOpenAI({
   apiKey: Deno.env.get("OPENAI_API_KEY"),
@@ -11,11 +12,6 @@ const openai = createOpenAI({
 const supabaseUrl = Deno.env.get("SUPABASE_URL");
 const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
 
-export const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -29,7 +25,7 @@ Deno.serve(async (req) => {
       }),
       {
         status: 500,
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...corsHeaders },
       },
     );
   }
@@ -41,7 +37,7 @@ Deno.serve(async (req) => {
       JSON.stringify({ error: `No authorization header passed` }),
       {
         status: 500,
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...corsHeaders },
       },
     );
   }

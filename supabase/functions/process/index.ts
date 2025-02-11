@@ -1,10 +1,15 @@
 import { createClient } from "@supabase/supabase-js";
 import { TextSplitter } from "../_lib/text-splitter.ts";
+import { corsHeaders } from "../_lib/cors.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
 Deno.serve(async (req: Request): Promise<Response> => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
+
   const authorization = req.headers.get("Authorization");
 
   if (!authorization) {
@@ -12,7 +17,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       JSON.stringify({ error: `No authorization header passed` }),
       {
         status: 500,
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...corsHeaders },
       },
     );
   }
@@ -41,7 +46,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       JSON.stringify({ error: "Failed to find uploaded document" }),
       {
         status: 500,
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...corsHeaders },
       },
     );
   }
@@ -67,13 +72,13 @@ Deno.serve(async (req: Request): Promise<Response> => {
       JSON.stringify({ error: "Failed to save document chunks" }),
       {
         status: 500,
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...corsHeaders },
       },
     );
   }
 
   return new Response(null, {
     status: 204,
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...corsHeaders },
   });
 });
