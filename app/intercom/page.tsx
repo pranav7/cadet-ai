@@ -112,7 +112,7 @@ export default function IntercomPage() {
     })
   }
 
-  const loadDocuments = async () => {
+  const loadDocuments = useCallback(async () => {
     const { data, error } = await supabase
       .from('documents')
       .select('*')
@@ -124,7 +124,7 @@ export default function IntercomPage() {
     } else {
       setDocuments(data || []);
     }
-  }
+  }, [supabase]);
 
   useEffect(() => {
     loadDocuments();
