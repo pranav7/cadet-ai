@@ -8,10 +8,11 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { MessageSquareIcon } from "lucide-react";
 import { useEffect } from "react";
+import { LoadingDots } from "./ui/loading-dots";
 
 export function Chat() {
   const supabase = createClient();
-  const { messages, input, handleInputChange, handleSubmit, isLoading } =
+  const { messages, input, handleInputChange, handleSubmit, isLoading: isLoadingChat } =
     useChat({
       api: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/chat`,
     });
@@ -59,7 +60,7 @@ export function Chat() {
     console.log("messages", messages.map((m) => m.content));
   }, [messages]);
 
-  if (isLoading || !isReady) {
+  if (!isReady) {
     return (
       <div className="border rounded-md p-4 bg-background w-full">
         <div className="flex flex-row gap-2 w-full">
@@ -91,6 +92,13 @@ export function Chat() {
               {content}
             </div>
           ))}
+          {isLoadingChat && (
+            <div className="text-center text-gray-500 flex flex-row items-center gap-2">
+              <p className="text-sm flex gap-1">
+                Thinking <LoadingDots />
+              </p>
+            </div>
+          )}
         </div>
         <form
           onSubmit={handleFormSubmit}
