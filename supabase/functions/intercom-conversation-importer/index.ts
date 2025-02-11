@@ -5,7 +5,7 @@ import {
   getIntercomConversations,
 } from "./intercom-api.ts";
 import { IntercomConversation } from "./types.ts";
-
+import { Sources } from "../_lib/constants.ts";
 const supabaseUrl = Deno.env.get("SUPABASE_URL");
 const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
 
@@ -34,7 +34,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
   });
 
   const { user_id, created_after, resume_from } = await req.json();
-  const createdAfterDate = created_after ? new Date(created_after) : undefined;
+  const createdAfterDate = created_after ? new Date(created_after) : new Date("2024-01-01");
   let startingAfter = resume_from || null;
 
   const { data: settings, error: settingsError } = await supabase
@@ -111,7 +111,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
               name: details.title || `Intercom conversation ${conversation.id}`,
               created_by: user_id,
               content,
-              source: 1,
+              source: Sources.Intercom,
               created_at: new Date(details.created_at * 1000).toISOString(),
               external_id: conversation.id,
             });

@@ -1,4 +1,4 @@
-export const Sources: Record<string, number> = {
+export const Sources = {
   Intercom: 1,
 };
 
