@@ -1,7 +1,7 @@
-import FetchDataSteps from "@/components/tutorial/fetch-data-steps";
 import { createClient } from "@/utils/supabase/server";
 import { CheckIcon, InfoIcon } from "lucide-react";
 import { redirect } from "next/navigation";
+import { Chat } from "@/components/chat";
 
 export default async function ProtectedPage() {
   const supabase = await createClient();
@@ -19,6 +19,10 @@ export default async function ProtectedPage() {
     .select("id")
     .eq("created_by", user.id)
     .single();
+
+  if (intercomSettingsError) {
+    console.error(intercomSettingsError);
+  }
 
   return (
     <div className="flex-1 w-full flex flex-col gap-12">
@@ -40,6 +44,9 @@ export default async function ProtectedPage() {
         <pre className="text-xs font-mono p-3 rounded border max-h-32 overflow-auto">
           {JSON.stringify(user, null, 2)}
         </pre>
+      </div>
+      <div className="flex flex-col gap-2 items-start">
+        <h2 className="font-bold text-2xl mb-4">Chat</h2>
       </div>
     </div>
   );
