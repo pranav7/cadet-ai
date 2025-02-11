@@ -56,10 +56,6 @@ export function Chat() {
     });
   };
 
-  useEffect(() => {
-    console.log("messages", messages.map((m) => m.content));
-  }, [messages]);
-
   if (!isReady) {
     return (
       <div className="border rounded-md p-4 bg-background w-full">

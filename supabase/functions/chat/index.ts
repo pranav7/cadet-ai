@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
     },
   });
 
-  const { id, messages, embedding } = await req.json();
+  const { messages, embedding } = await req.json();
 
   const { data: documents, error: matchError } = await supabase
     .rpc("match_document_sections", {
