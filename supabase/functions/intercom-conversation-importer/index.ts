@@ -11,9 +11,6 @@ import { corsHeaders } from '../_lib/cors.ts'
 const supabaseUrl = Deno.env.get("SUPABASE_URL");
 const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
 
-const BATCH_SIZE = 10;
-const DELAY_BETWEEN_CONVERSATIONS = 1000;
-
 async function importIntercomConversations(user_id: string, created_after: string, resume_from: string, supabase: SupabaseClient) {
   const createdAfterDate = created_after ? new Date(created_after) : new Date("2024-01-01");
   let startingAfter = resume_from || null;
@@ -32,14 +29,14 @@ async function importIntercomConversations(user_id: string, created_after: strin
 
   while (true) {
     console.log(
-      `Fetching batch starting after: ${startingAfter || "beginning"}`,
+      `Fetching conversations starting after: ${startingAfter || "beginning"}`,
     );
 
     const { conversations, nextStartingAfter } =
       await getIntercomConversations(
         settings.api_key,
         startingAfter,
-        BATCH_SIZE,
+        100,
         createdAfterDate,
       );
 
@@ -105,29 +102,8 @@ async function importIntercomConversations(user_id: string, created_after: strin
         console.log(
           `[${conversation.id}] Total processed: ${totalProcessed}`,
         );
-
-        console.log(
-          `💤 Sleeping for ${DELAY_BETWEEN_CONVERSATIONS}ms`,
-        );
-        await new Promise((resolve) =>
-          setTimeout(resolve, DELAY_BETWEEN_CONVERSATIONS)
-        );
-
-        // Store the cursor periodically
-        const { error: cursorError } = await supabase
-          .from("import_cursors")
-          .upsert({
-            user_id,
-            type: "intercom",
-            cursor: startingAfter,
-            updated_at: new Date().toISOString(),
-          });
-
-        if (cursorError) {
-          console.error("Failed to save cursor:", cursorError);
-        }
       } catch (error: any) {
-        console.error("Batch processing error:", error);
+        console.error("Processing error:", error);
         return new Response(
           JSON.stringify({
             success: false,
@@ -179,16 +155,15 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
   const { user_id, created_after, resume_from } = await req.json();
 
-  EdgeRuntime.waitUntil((async () => {
-    importIntercomConversations(user_id, created_after, resume_from, supabase);
-  })());
+  // Replace EdgeRuntime.waitUntil with a direct function call
+  await importIntercomConversations(user_id, created_after, resume_from, supabase);
 
   return new Response(
     JSON.stringify({
       success: true,
-      message: "Import started in background",
+      message: "Import completed",
     }),
-    { status: 202, headers: { "Content-Type": "application/json", ...corsHeaders } },
+    { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } },
   );
 });
 
