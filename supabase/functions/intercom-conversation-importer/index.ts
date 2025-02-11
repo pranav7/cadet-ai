@@ -4,12 +4,13 @@ import {
   getConversationDetails,
   getIntercomConversations,
 } from "./intercom-api.ts";
+import { IntercomConversation } from "./types.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL");
 const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
 
-const BATCH_SIZE = 25;
-const DELAY_BETWEEN_CONVERSATIONS = 2000; // 2 seconds delay
+const BATCH_SIZE = 10;
+const DELAY_BETWEEN_CONVERSATIONS = 1000; // 1 second delay
 
 Deno.serve(async (req: Request): Promise<Response> => {
   if (!supabaseUrl || !supabaseAnonKey) {
@@ -32,8 +33,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
     auth: { persistSession: false },
   });
 
-  const { user_id, created_after } = await req.json();
+  const { user_id, created_after, resume_from } = await req.json();
   const createdAfterDate = created_after ? new Date(created_after) : undefined;
+  let startingAfter = resume_from || null;
 
   const { data: settings, error: settingsError } = await supabase
     .from("intercom_settings")
@@ -48,7 +50,6 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
   EdgeRuntime.waitUntil((async () => {
     let totalProcessed = 0;
-    let startingAfter: string | null = null;
 
     // Keep fetching while we have more pages
     while (true) {
@@ -72,65 +73,95 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
       // Process conversations in this batch
       for (const conversation of conversations) {
-        console.log(`[${conversation.id}] Processing conversation`);
-        const { data: existing } = await supabase
-          .from("documents")
-          .select("id")
-          .eq("source", 1)
-          .eq("external_id", conversation.id)
-          .maybeSingle();
+        try {
+          console.log(`[${conversation.id}] Processing conversation`);
+          const { data: existing } = await supabase
+            .from("documents")
+            .select("id")
+            .eq("source", 1)
+            .eq("external_id", conversation.id)
+            .maybeSingle();
 
-        if (existing) {
+          if (existing) {
+            console.log(
+              `[${conversation.id}] Found existing document for conversation, skipping ...`,
+            );
+            continue;
+          }
+
+          console.log(`[${conversation.id}] Fetching conversation details`);
+          const details = await Promise.race([
+            getConversationDetails(settings.api_key, conversation.id),
+            new Promise((_, reject) =>
+              setTimeout(() => reject(new Error("Timeout")), 10000)
+            ),
+          ]) as IntercomConversation;
+
           console.log(
-            `[${conversation.id}] Found existing document for conversation, skipping ...`,
+            `[${conversation.id}] Converting conversation to markdown`,
           );
-          continue;
-        }
+          const content = conversationToMarkdown(details);
 
-        console.log(`[${conversation.id}] Fetching conversation details`);
-        const details = await getConversationDetails(
-          settings.api_key,
-          conversation.id,
-        );
-
-        console.log(
-          `[${conversation.id}] Converting conversation to markdown`,
-        );
-        const content = conversationToMarkdown(details);
-
-        console.log(
-          `[${conversation.id}] Inserting conversation into database`,
-        );
-        const { error: insertError } = await supabase
-          .from("documents")
-          .insert({
-            name: details.title || `Intercom conversation ${conversation.id}`,
-            created_by: user_id,
-            content,
-            source: 1,
-            created_at: new Date(details.created_at * 1000).toISOString(),
-            external_id: conversation.id,
-          });
-
-        if (insertError) {
-          console.error(
-            `[${conversation.id}] Failed to insert conversation:`,
-            insertError,
+          console.log(
+            `[${conversation.id}] Inserting conversation into database`,
           );
-        } else {
-          totalProcessed++;
+          const { error: insertError } = await supabase
+            .from("documents")
+            .insert({
+              name: details.title || `Intercom conversation ${conversation.id}`,
+              created_by: user_id,
+              content,
+              source: 1,
+              created_at: new Date(details.created_at * 1000).toISOString(),
+              external_id: conversation.id,
+            });
+
+          if (insertError) {
+            console.error(
+              `[${conversation.id}] Failed to insert conversation:`,
+              insertError,
+            );
+          } else {
+            totalProcessed++;
+          }
+
+          console.log(`[${conversation.id}] Processed conversation`);
+          console.log(
+            `[${conversation.id}] Total processed: ${totalProcessed}`,
+          );
+
+          // Add delay between processing conversations
+          console.log(
+            `💤 Sleeping for ${DELAY_BETWEEN_CONVERSATIONS}ms`,
+          );
+          await new Promise((resolve) =>
+            setTimeout(resolve, DELAY_BETWEEN_CONVERSATIONS)
+          );
+
+          // Store the cursor periodically
+          const { error: cursorError } = await supabase
+            .from("import_cursors")
+            .upsert({
+              user_id,
+              type: "intercom",
+              cursor: startingAfter,
+              updated_at: new Date().toISOString(),
+            });
+
+          if (cursorError) {
+            console.error("Failed to save cursor:", cursorError);
+          }
+        } catch (error: any) {
+          console.error("Batch processing error:", error);
+          return new Response(
+            JSON.stringify({
+              success: false,
+              resume_from: startingAfter,
+              error: error.message,
+            }),
+            { status: 500, headers: { "Content-Type": "application/json" } },
+          );
         }
-
-        console.log(`[${conversation.id}] Processed conversation`);
-        console.log(`[${conversation.id}] Total processed: ${totalProcessed}`);
-
-        // Add delay between processing conversations
-        console.log(
-          `💤 Sleeping for ${DELAY_BETWEEN_CONVERSATIONS}ms`,
-        );
-        await new Promise((resolve) =>
-          setTimeout(resolve, DELAY_BETWEEN_CONVERSATIONS)
-        );
       }
 
       // Update cursor for next batch
