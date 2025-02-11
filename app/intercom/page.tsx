@@ -5,6 +5,8 @@ import { useCallback, useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
+import { Sources } from "@/constants/sources";
+import ReactMarkdown from 'react-markdown';
 
 interface IntercomSettings {
   enabled: boolean;
@@ -16,6 +18,7 @@ export default function IntercomPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [documents, setDocuments] = useState([]);
   const supabase = createClient();
 
   const loadSettings = useCallback(async () => {
@@ -97,6 +100,24 @@ export default function IntercomPage() {
     })
   }
 
+  const loadDocuments = async () => {
+    const { data, error } = await supabase
+      .from('documents')
+      .select('*')
+      .eq('source', Sources.Intercom)
+      .limit(50);
+
+    if (error) {
+      setError(error.message);
+    } else {
+      setDocuments(data || []);
+    }
+  }
+
+  useEffect(() => {
+    loadDocuments();
+  }, [loadDocuments]);
+
   if (loading) {
     return <div className="p-4">Loading...</div>;
   }
@@ -143,6 +164,24 @@ export default function IntercomPage() {
           >
             Import past conversations
           </Button>
+        </div>
+      )}
+
+      {documents.length > 0 && (
+        <div className="mt-6 border-t border-gray-50 dark:border-gray-800 pt-6">
+          <h2 className="text-md font-bold mb-4">Imported Conversations</h2>
+          <ul className="space-y-4">
+            {documents.map((document: any) => (
+              <li key={document.id} className="bg-white dark:bg-gray-900 p-4 rounded-md shadow-sm">
+                <div className="text-sm font-medium mb-2 border-b border-gray-50 dark:border-gray-800 pb-2">{document.name}</div>
+                <div className="text-sm overflow-auto max-h-[400px]">
+                  <ReactMarkdown>
+                    {document.content}
+                  </ReactMarkdown>
+                </div>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
     </div>
