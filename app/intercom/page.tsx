@@ -8,6 +8,18 @@ import { toast } from "@/hooks/use-toast";
 import { Sources } from "@/constants/sources";
 import ReactMarkdown from 'react-markdown';
 
+interface Document {
+  id: number;
+  name: string;
+  content: string;
+  source: number;
+  metadata: Record<string, any>;
+  external_id: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
 interface IntercomSettings {
   enabled: boolean;
   api_key: string | null;
@@ -18,7 +30,7 @@ export default function IntercomPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [documents, setDocuments] = useState([]);
+  const [documents, setDocuments] = useState<Document[]>([]);
   const supabase = createClient();
 
   const loadSettings = useCallback(async () => {
@@ -171,7 +183,7 @@ export default function IntercomPage() {
         <div className="mt-6 border-t border-gray-50 dark:border-gray-800 pt-6">
           <h2 className="text-md font-bold mb-4">Imported Conversations</h2>
           <ul className="space-y-4">
-            {documents.map((document: any) => (
+            {documents.map((document: Document) => (
               <li key={document.id} className="bg-white dark:bg-gray-900 p-4 rounded-md shadow-sm">
                 <div className="text-sm font-medium mb-2 border-b border-gray-50 dark:border-gray-800 pb-2">{document.name}</div>
                 <div className="text-sm overflow-auto max-h-[400px]">
