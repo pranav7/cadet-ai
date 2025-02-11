@@ -3,7 +3,6 @@
 import { createClient } from "@/utils/supabase/client";
 import { useCallback, useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 
 interface IntercomSettings {
@@ -27,7 +26,6 @@ export default function IntercomPage() {
       return;
     }
 
-    // Get the intercom settings for this user
     const { data, error } = await supabase
       .from('intercom_settings')
       .select('*')

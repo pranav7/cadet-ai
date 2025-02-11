@@ -1,32 +1,48 @@
-import { IntercomConversation } from "./types.ts";
+import { IntercomConversation, IntercomPagination } from "./types.ts";
 import { htmlToMarkdown } from "../_lib/markdown-converter.ts";
 
 export async function getIntercomConversations(
   apiKey: string,
   startingAfter?: string | null,
-  batchSize = 50,
+  batchSize = 100,
   createdAfter?: Date,
-): Promise<
-  { conversations: IntercomConversation[]; nextStartingAfter: string | null }
-> {
-  const url = "https://api.intercom.io/conversations";
-  const params = new URLSearchParams({
-    per_page: batchSize.toString(),
-  });
+): Promise<{
+  conversations: IntercomConversation[];
+  nextStartingAfter: string | null;
+  totalCount: number;
+}> {
+  const url = "https://api.intercom.io/conversations/search";
+
+  const searchQuery: any = {
+    query: {
+      operator: "AND",
+      value: [],
+    },
+    pagination: {
+      per_page: batchSize,
+    },
+  };
+
   if (startingAfter) {
-    params.append("starting_after", startingAfter);
-  }
-  if (createdAfter) {
-    params.append(
-      "created_after",
-      Math.floor(createdAfter.getTime() / 1000).toString(),
-    );
+    searchQuery.pagination.starting_after = startingAfter;
   }
 
-  const response = await fetch(`${url}?${params}`, {
+  if (createdAfter) {
+    searchQuery.query.value.push({
+      field: "created_at",
+      operator: ">",
+      value: Math.floor(createdAfter.getTime() / 1000).toString(),
+    });
+  }
+
+  const response = await fetch(url, {
+    method: "POST",
+    body: JSON.stringify(searchQuery),
     headers: {
       "Authorization": `Bearer ${apiKey}`,
       "Accept": "application/json",
+      "Content-Type": "application/json",
+      "Intercom-Version": "2.12",
     },
   });
 
@@ -35,11 +51,11 @@ export async function getIntercomConversations(
   }
 
   const data = await response.json();
-  const nextStartingAfter = data.pages?.next?.starting_after || null;
 
   return {
-    conversations: data.conversations,
-    nextStartingAfter,
+    conversations: data.conversations || [],
+    nextStartingAfter: data.pages?.next?.starting_after || null,
+    totalCount: data.total_count || 0,
   };
 }
 

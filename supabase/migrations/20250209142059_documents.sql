@@ -7,10 +7,14 @@ create table documents (
   content text not null,
   source integer not null,
   metadata jsonb not null default '{}',
+  external_id text not null,
   created_by uuid not null references auth.users (id) default auth.uid(),
   created_at timestamp with time zone not null default now(),
-  updated_at timestamp with time zone not null default now()
+  updated_at timestamp with time zone not null default now(),
+  unique (external_id)
 );
+
+CREATE UNIQUE INDEX documents_external_id_idx ON documents USING btree (external_id);
 
 create table document_chunks (
   id bigint primary key generated always as identity,

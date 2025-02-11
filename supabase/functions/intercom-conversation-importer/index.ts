@@ -4,12 +4,13 @@ import {
   getConversationDetails,
   getIntercomConversations,
 } from "./intercom-api.ts";
+import { IntercomConversation } from "./types.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL");
 const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
 
-const BATCH_SIZE = 50;
-const MAX_BATCHES = 5;
+const BATCH_SIZE = 10;
+const DELAY_BETWEEN_CONVERSATIONS = 1000; // 1 second delay
 
 Deno.serve(async (req: Request): Promise<Response> => {
   if (!supabaseUrl || !supabaseAnonKey) {
@@ -32,8 +33,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
     auth: { persistSession: false },
   });
 
-  const { user_id, created_after } = await req.json();
+  const { user_id, created_after, resume_from } = await req.json();
   const createdAfterDate = created_after ? new Date(created_after) : undefined;
+  let startingAfter = resume_from || null;
 
   const { data: settings, error: settingsError } = await supabase
     .from("intercom_settings")
@@ -48,27 +50,36 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
   EdgeRuntime.waitUntil((async () => {
     let totalProcessed = 0;
-    let startingAfter: string | null = null;
-    let batchCount = 0;
 
-    try {
-      while (batchCount < MAX_BATCHES) {
-        const { conversations, nextStartingAfter } =
-          await getIntercomConversations(
-            settings.api_key,
-            startingAfter,
-            BATCH_SIZE,
-            createdAfterDate,
-          );
+    // Keep fetching while we have more pages
+    while (true) {
+      console.log(
+        `Fetching batch starting after: ${startingAfter || "beginning"}`,
+      );
 
-        for (const conversation of conversations) {
+      const { conversations, nextStartingAfter } =
+        await getIntercomConversations(
+          settings.api_key,
+          startingAfter,
+          BATCH_SIZE,
+          createdAfterDate,
+        );
+
+      // If no conversations returned, we're done
+      if (conversations.length === 0) {
+        console.log("No more conversations to process");
+        break;
+      }
+
+      // Process conversations in this batch
+      for (const conversation of conversations) {
+        try {
           console.log(`[${conversation.id}] Processing conversation`);
-          console.log(`[${conversation.id}] Finding existing documents if any`);
           const { data: existing } = await supabase
             .from("documents")
             .select("id")
             .eq("source", 1)
-            .eq("metadata->external_id", conversation.id)
+            .eq("external_id", conversation.id)
             .maybeSingle();
 
           if (existing) {
@@ -79,10 +90,12 @@ Deno.serve(async (req: Request): Promise<Response> => {
           }
 
           console.log(`[${conversation.id}] Fetching conversation details`);
-          const details = await getConversationDetails(
-            settings.api_key,
-            conversation.id,
-          );
+          const details = await Promise.race([
+            getConversationDetails(settings.api_key, conversation.id),
+            new Promise((_, reject) =>
+              setTimeout(() => reject(new Error("Timeout")), 10000)
+            ),
+          ]) as IntercomConversation;
 
           console.log(
             `[${conversation.id}] Converting conversation to markdown`,
@@ -100,11 +113,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
               content,
               source: 1,
               created_at: new Date(details.created_at * 1000).toISOString(),
-              metadata: {
-                external_id: conversation.id,
-                created_at: details.created_at,
-                updated_at: details.updated_at,
-              },
+              external_id: conversation.id,
             });
 
           if (insertError) {
@@ -115,46 +124,61 @@ Deno.serve(async (req: Request): Promise<Response> => {
           } else {
             totalProcessed++;
           }
+
+          console.log(`[${conversation.id}] Processed conversation`);
+          console.log(
+            `[${conversation.id}] Total processed: ${totalProcessed}`,
+          );
+
+          // Add delay between processing conversations
+          console.log(
+            `💤 Sleeping for ${DELAY_BETWEEN_CONVERSATIONS}ms`,
+          );
+          await new Promise((resolve) =>
+            setTimeout(resolve, DELAY_BETWEEN_CONVERSATIONS)
+          );
+
+          // Store the cursor periodically
+          const { error: cursorError } = await supabase
+            .from("import_cursors")
+            .upsert({
+              user_id,
+              type: "intercom",
+              cursor: startingAfter,
+              updated_at: new Date().toISOString(),
+            });
+
+          if (cursorError) {
+            console.error("Failed to save cursor:", cursorError);
+          }
+        } catch (error: any) {
+          console.error("Batch processing error:", error);
+          return new Response(
+            JSON.stringify({
+              success: false,
+              resume_from: startingAfter,
+              error: error.message,
+            }),
+            { status: 500, headers: { "Content-Type": "application/json" } },
+          );
         }
-
-        if (!nextStartingAfter) break;
-        startingAfter = nextStartingAfter;
-        batchCount++;
-
-        // Store the cursor for the next run
-        await supabase
-          .from("import_cursors")
-          .upsert({
-            user_id,
-            cursor: nextStartingAfter,
-            last_processed: new Date().toISOString(),
-          });
       }
 
-      // If there's more data to process, schedule the next run
-      if (startingAfter) {
-        await fetch(
-          `${supabaseUrl}/functions/v1/intercom-conversation-importer`,
-          {
-            method: "POST",
-            headers: {
-              "Authorization": authorization,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ user_id }),
-          },
-        );
-      }
+      // Update cursor for next batch
+      startingAfter = nextStartingAfter;
 
-      console.log(
-        `Batch completed. Processed ${totalProcessed} conversations.`,
-      );
-    } catch (error) {
-      console.error("Background task failed:", error);
+      // If no next cursor, we've reached the end
+      if (!nextStartingAfter) {
+        console.log("Reached end of conversations");
+        break;
+      }
     }
+
+    console.log(
+      `Import complete. Total conversations processed: ${totalProcessed}`,
+    );
   })());
 
-  // Return immediately while processing continues in the background
   return new Response(
     JSON.stringify({
       success: true,
@@ -175,5 +199,5 @@ addEventListener("beforeunload", (event) => {
   curl -i --location --request POST 'http://127.0.0.1:54321/functions/v1/intercom-conversation-importer' \
     --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0' \
     --header 'Content-Type: application/json' \
-    --data '{"user_id": "1e6c6180-dadc-4c22-8a5c-3ea605bc6da6", "created_after": "2024-01-01"}'
+    --data '{"user_id": "21699cd3-7a34-4ab2-8a7d-c0d57c4f23ea", "created_after": "2024-01-01"}'
 */

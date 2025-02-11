@@ -18,3 +18,12 @@ export interface IntercomConversation {
     conversation_parts: IntercomMessage[];
   };
 }
+
+export interface IntercomPagination {
+  pages: {
+    next?: {
+      starting_after: string;
+    };
+  };
+  conversations: IntercomConversation[];
+}
