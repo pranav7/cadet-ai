@@ -66,33 +66,47 @@ export async function importConversations(createdAfter?: Date) {
     throw new Error("User not found");
   }
 
+  console.log("Starting background import ...");
+  backgroundImport(user.user.id, createdAfter);
+
+  return {
+    success: true,
+    message: "Import started in background. Check logs for progress."
+  };
+}
+
+async function backgroundImport(userId: string, createdAfter?: Date) {
   let startingAfter: string | null = null;
   let totalProcessed = 0;
 
-  while (true) {
-    const { conversations, nextStartingAfter, totalCount } =
-      await IntercomApi.getIntercomConversations(
-        startingAfter,
-        100,
-        createdAfter,
-      );
+  try {
+    while (true) {
+      const { conversations, nextStartingAfter, totalCount } =
+        await IntercomApi.getIntercomConversations(
+          startingAfter,
+          100,
+          createdAfter,
+        );
 
-    if (conversations.length === 0) {
-      break;
+      if (conversations.length === 0) {
+        break;
+      }
+
+      console.log("Processing batch of", conversations.length, "conversations");
+      await processConversationsBatch(conversations, userId);
+
+      totalProcessed += conversations.length;
+      console.log(`Processed ${totalProcessed} of ${totalCount} conversations`);
+
+      if (!nextStartingAfter) {
+        break;
+      }
+
+      startingAfter = nextStartingAfter;
     }
 
-    console.log("Kicking off batch processing for", conversations.length, "conversations");
-    processConversationsBatch(conversations, user.user.id);
-
-    totalProcessed += conversations.length;
-    console.log(`Processed ${totalProcessed} of ${totalCount} conversations`);
-
-    if (!nextStartingAfter) {
-      break;
-    }
-
-    startingAfter = nextStartingAfter;
+    console.log(`Background import completed. Processed ${totalProcessed} conversations`);
+  } catch (error) {
+    console.error("Background import failed:", error);
   }
-
-  return { success: true, message: `Processed ${totalProcessed} conversations` };
 }
