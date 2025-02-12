@@ -1,5 +1,5 @@
 import { createClient } from "@/utils/supabase/server";
-import { IntercomConversation } from "./types";
+import { IntercomConversation } from "@/lib/intercom/types";
 import TurndownService from "turndown";
 
 class IntercomApi {

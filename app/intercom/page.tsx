@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Sources } from "@/constants/sources";
 import ReactMarkdown from 'react-markdown';
 import { toast } from "sonner"
-import { importConversations } from "@/app/backend/intercom/import-conversations";
 
 interface Document {
   id: number;
@@ -58,10 +57,6 @@ export default function IntercomPage() {
     setLoading(false);
   }, [supabase]);
 
-  useEffect(() => {
-    loadSettings();
-  }, [loadSettings]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const form = e.target as HTMLFormElement;
@@ -99,7 +94,9 @@ export default function IntercomPage() {
 
   const kickOffImport = async () => {
     try {
-      await importConversations();
+      await fetch("/intercom/api", {
+        method: "POST",
+      });
       toast.success("Conversations import started");
       await loadDocuments();
     } catch (error) {
@@ -136,6 +133,10 @@ export default function IntercomPage() {
   useEffect(() => {
     countDocuments().then(setDocumentCount);
   }, [countDocuments]);
+
+  useEffect(()=> {
+    loadSettings();
+  }, [loadSettings]);
 
   if (loading) {
     return <div className="p-4">Loading...</div>;

@@ -1,8 +1,6 @@
-"use server";
-
 import { createClient } from "@/utils/supabase/server";
-import IntercomApi from "@/app/backend/intercom/api";
-import { IntercomConversation } from "@/app/backend/intercom/types";
+import IntercomApi from "@/lib/intercom/api";
+import { IntercomConversation } from "@/lib/intercom/types";
 import { Sources } from "@/constants/sources";
 
 async function processConversationsBatch(
