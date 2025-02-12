@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Sources } from "@/constants/sources";
 import ReactMarkdown from 'react-markdown';
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner"
 
 interface Document {
   id: number;
@@ -32,7 +32,6 @@ export default function IntercomPage() {
   const [error, setError] = useState<string | null>(null);
   const [documents, setDocuments] = useState<Document[]>([]);
   const supabase = createClient();
-  const { toast } = useToast()
 
   const loadSettings = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -90,10 +89,7 @@ export default function IntercomPage() {
     if (error) {
       setError(error.message);
     } else {
-      toast({
-        title: "Settings saved",
-        description: "Your settings have been saved successfully.",
-      })
+      toast.success("Settings saved");
       await loadSettings();
     }
     setSaving(false);
@@ -112,10 +108,7 @@ export default function IntercomPage() {
       method: "POST",
     })
 
-    toast({
-      title: "Conversations import started",
-      description: "This may take a while, please check back later.",
-    })
+    toast.success("Conversations import started");
   }
 
   const loadDocuments = useCallback(async () => {
