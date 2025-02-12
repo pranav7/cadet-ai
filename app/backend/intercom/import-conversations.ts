@@ -68,6 +68,7 @@ export async function importConversations(createdAfter?: Date) {
 
   console.log("Starting background import ...");
   backgroundImport(user.user.id, createdAfter);
+  console.log("Background import started");
 
   return {
     success: true,
@@ -79,6 +80,7 @@ async function backgroundImport(userId: string, createdAfter?: Date) {
   let startingAfter: string | null = null;
   let totalProcessed = 0;
 
+  console.log("Starting background import loop ...");
   try {
     while (true) {
       const { conversations, nextStartingAfter, totalCount } =
@@ -89,6 +91,7 @@ async function backgroundImport(userId: string, createdAfter?: Date) {
         );
 
       if (conversations.length === 0) {
+        console.log("No more conversations to process");
         break;
       }
 
