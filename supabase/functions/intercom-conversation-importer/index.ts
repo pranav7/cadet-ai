@@ -29,7 +29,7 @@ async function importIntercomConversations(user_id: string, created_after: strin
       break;
     }
 
-    await supabase.functions.invoke("intercom-conversations-batch-processor", {
+    supabase.functions.invoke("intercom-conversations-batch-processor", {
       body: {
         conversations,
         user_id,
