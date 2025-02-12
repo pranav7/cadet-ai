@@ -1,8 +1,24 @@
+import { SupabaseClient } from '@supabase/supabase-js';
 import { IntercomConversation } from "./types.ts";
 import { htmlToMarkdown } from "./markdown-converter.ts";
 
+async function getIntercomApiKey(supabase: SupabaseClient) {
+  const { data: settings, error: settingsError } = await supabase
+    .from("intercom_settings")
+    .select("*")
+    .single();
+
+  if (settingsError || !settings?.api_key) {
+    throw new Error("Intercom not configured or enabled for this account", {
+      cause: JSON.stringify(settingsError),
+    });
+  }
+
+  return settings?.api_key;
+}
+
 export async function getIntercomConversations(
-  apiKey: string,
+  supabase: SupabaseClient,
   startingAfter?: string | null,
   batchSize = 100,
   createdAfter?: Date,
@@ -12,7 +28,7 @@ export async function getIntercomConversations(
   totalCount: number;
 }> {
   const url = "https://api.intercom.io/conversations/search";
-
+  const apiKey = await getIntercomApiKey(supabase);
   const searchQuery: any = {
     query: {
       operator: "AND",
@@ -60,9 +76,10 @@ export async function getIntercomConversations(
 }
 
 export async function getConversationDetails(
-  apiKey: string,
   conversationId: string,
+  supabase: SupabaseClient,
 ): Promise<IntercomConversation> {
+  const apiKey = await getIntercomApiKey(supabase);
   const url = `https://api.intercom.io/conversations/${conversationId}`;
   const response = await fetch(url, {
     headers: {
