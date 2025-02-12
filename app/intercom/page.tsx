@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Sources } from "@/constants/sources";
 import ReactMarkdown from 'react-markdown';
 import { toast } from "sonner"
+import { importConversations } from "@/app/backend/intercom/import-conversations";
 
 interface Document {
   id: number;
@@ -95,20 +96,14 @@ export default function IntercomPage() {
     setSaving(false);
   };
 
-  const importConversations = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      setError("You must be logged in to import conversations");
-      return;
+  const kickOffImport = async () => {
+    try {
+      await importConversations();
+      toast.success("Conversations import started");
+      await loadDocuments();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to import conversations");
     }
-
-    await supabase.functions.invoke('intercom-conversation-importer', {
-      body: { user_id: user.id },
-      method: "POST",
-    })
-
-    toast.success("Conversations import started");
   }
 
   const loadDocuments = useCallback(async () => {
@@ -169,9 +164,7 @@ export default function IntercomPage() {
         <div className="mt-6 border-t border-gray-50 dark:border-gray-800 pt-6">
           <Button
             size="sm"
-            onClick={() => {
-              importConversations();
-            }}
+            onClick={kickOffImport}
           >
             Import past conversations
           </Button>

@@ -26,12 +26,14 @@
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "react-markdown": "^9.0.3",
-    "sonner": "^1.7.4"
+    "sonner": "^1.7.4",
+    "turndown": "^7.2.0"
   },
   "devDependencies": {
     "@types/node": "22.10.2",
     "@types/react": "^19.0.8",
     "@types/react-dom": "19.0.2",
+    "@types/turndown": "^5.0.5",
     "postcss": "8.4.49",
     "supabase": "^2.9.6",
     "tailwind-merge": "^2.6.0",
