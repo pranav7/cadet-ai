@@ -32,6 +32,7 @@ export default function IntercomPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [documents, setDocuments] = useState<Document[]>([]);
+  const [documentCount, setDocumentCount] = useState<number | null>(null);
   const supabase = createClient();
 
   const loadSettings = useCallback(async () => {
@@ -106,6 +107,14 @@ export default function IntercomPage() {
     }
   }
 
+  const countDocuments = useCallback(async () => {
+    const { count } = await supabase
+      .from('documents')
+      .select('*', { count: 'exact' })
+      .eq('source', Sources.Intercom);
+    return count;
+  }, [supabase]);
+
   const loadDocuments = useCallback(async () => {
     const { data, error } = await supabase
       .from('documents')
@@ -124,13 +133,17 @@ export default function IntercomPage() {
     loadDocuments();
   }, [loadDocuments]);
 
+  useEffect(() => {
+    countDocuments().then(setDocumentCount);
+  }, [countDocuments]);
+
   if (loading) {
     return <div className="p-4">Loading...</div>;
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-6 border border-gray-50 dark:border-gray-800 rounded-md">
-      <h1 className="text-2xl font-bold mb-6">Intercom Settings</h1>
+    <div className="max-w-2xl mx-auto p-2 border border-gray-50 dark:border-gray-800 rounded-md">
+      <h3 className="text-2xl font-bold mb-6">Intercom Settings</h3>
 
       {error && (
         <div className="bg-red-50 text-red-600 p-4 rounded-md mb-4">
@@ -173,7 +186,12 @@ export default function IntercomPage() {
 
       {documents.length > 0 && (
         <div className="mt-6 border-t border-gray-50 dark:border-gray-800 pt-6">
-          <h2 className="text-md font-bold mb-4">Imported Conversations</h2>
+          <div className="flex flex-row justify-between items-center mb-4">
+            <h2 className="text-md font-bold">Conversations</h2>
+            <span className="text-xs bg-gray-100 dark:bg-gray-900 dark:text-gray-100 text-gray-800 px-2 py-1 rounded-md">
+              {documentCount ? `${documentCount} conversations imported` : '...'}
+            </span>
+          </div>
           <ul className="space-y-4">
             {documents.map((document: Document) => (
               <li key={document.id} className="bg-gray-100 dark:bg-gray-900 p-4 rounded-md shadow-sm">

@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { MessageSquareIcon } from "lucide-react";
-import { useEffect } from "react";
 import { LoadingDots } from "./ui/loading-dots";
 
 export function Chat() {
@@ -68,7 +67,7 @@ export function Chat() {
   }
 
   return (
-    <div className="border rounded-md p-4 bg-gray-50 w-full">
+    <div className="border rounded-md p-4 bg-gray-50 dark:bg-gray-900 w-full">
       <div className="flex flex-col gap-5 w-full">
         <div className="flex flex-col gap-2 w-full">
           {messages.length === 0 && (
@@ -81,15 +80,15 @@ export function Chat() {
             <div
               key={id}
               className={cn(
-                'rounded-lg px-2 py-1 max-w-lg text-sm text-black',
-                role === 'user' ? 'self-end bg-blue-100' : 'self-start bg-gray-200'
+                'rounded-lg px-2 py-1 max-w-lg text-sm text-black dark:text-white',
+                role === 'user' ? 'self-end bg-blue-100 dark:bg-blue-900' : 'self-start bg-gray-200 dark:bg-gray-800'
               )}
             >
               {content}
             </div>
           ))}
           {isLoadingChat && (
-            <div className="text-center text-gray-500 flex flex-row items-center gap-2">
+            <div className="text-center text-gray-500 dark:text-gray-400 flex flex-row items-center gap-2">
               <p className="text-sm flex gap-1">
                 Thinking <LoadingDots />
               </p>
@@ -106,7 +105,7 @@ export function Chat() {
             placeholder="Send a message"
             value={input}
             onChange={handleInputChange}
-            className="bg-white w-full"
+            className="bg-white dark:bg-gray-900 w-full"
           />
           <Button disabled={!isReady} type="submit">
             Send
