@@ -4,9 +4,9 @@ import { createClient } from "@/utils/supabase/client";
 import { useCallback, useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { toast } from "@/hooks/use-toast";
 import { Sources } from "@/constants/sources";
 import ReactMarkdown from 'react-markdown';
+import { useToast } from "@/hooks/use-toast";
 
 interface Document {
   id: number;
@@ -32,6 +32,7 @@ export default function IntercomPage() {
   const [error, setError] = useState<string | null>(null);
   const [documents, setDocuments] = useState<Document[]>([]);
   const supabase = createClient();
+  const { toast } = useToast()
 
   const loadSettings = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -89,6 +90,10 @@ export default function IntercomPage() {
     if (error) {
       setError(error.message);
     } else {
+      toast({
+        title: "Settings saved",
+        description: "Your settings have been saved successfully.",
+      })
       await loadSettings();
     }
     setSaving(false);
@@ -102,8 +107,9 @@ export default function IntercomPage() {
       return;
     }
 
-    const { data, error } = await supabase.functions.invoke('intercom-conversation-importer', {
+    await supabase.functions.invoke('intercom-conversation-importer', {
       body: { user_id: user.id },
+      method: "POST",
     })
 
     toast({
@@ -184,7 +190,7 @@ export default function IntercomPage() {
           <h2 className="text-md font-bold mb-4">Imported Conversations</h2>
           <ul className="space-y-4">
             {documents.map((document: Document) => (
-              <li key={document.id} className="bg-white dark:bg-gray-900 p-4 rounded-md shadow-sm">
+              <li key={document.id} className="bg-gray-100 dark:bg-gray-900 p-4 rounded-md shadow-sm">
                 <div className="text-sm font-medium mb-2 border-b border-gray-50 dark:border-gray-800 pb-2">{document.name}</div>
                 <div className="text-sm overflow-auto max-h-[400px]">
                   <ReactMarkdown>
