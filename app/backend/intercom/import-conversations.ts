@@ -81,6 +81,7 @@ export async function importConversations(createdAfter?: Date) {
       break;
     }
 
+    console.log("Kicking off batch processing for", conversations.length, "conversations");
     processConversationsBatch(conversations, user.user.id);
 
     totalProcessed += conversations.length;

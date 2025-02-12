@@ -265,18 +265,6 @@ import_map = "./functions/deno.json"
 entrypoint = "./functions/chat/index.ts"
 
 # Use these configurations to customize your Edge Function.
-[functions.intercom-conversation-importer]
-enabled = true
-verify_jwt = false
-import_map = "./functions/deno.json"
-entrypoint = "./functions/intercom-conversation-importer/index.ts"
-
-[functions.intercom-conversations-batch-processor]
-enabled = true
-import_map = "./functions/deno.json"
-entrypoint = "./functions/intercom-conversations-batch-processor/index.ts"
-
-# Use these configurations to customize your Edge Function.
 # [functions.MY_FUNCTION_NAME]
 # enabled = true
 # verify_jwt = true
