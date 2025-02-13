@@ -1,3 +1,5 @@
+begin;
+
 create or replace function match_document_sections(
   embedding vector(384),
   match_threshold float
@@ -14,3 +16,5 @@ begin
 	order by document_chunks.embedding <#> embedding;
 end;
 $$;
+
+commit;

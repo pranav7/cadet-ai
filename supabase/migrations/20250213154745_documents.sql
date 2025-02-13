@@ -1,3 +1,5 @@
+begin;
+
 create extension if not exists pg_net with schema extensions;
 create extension if not exists vector with schema extensions;
 
@@ -8,16 +10,18 @@ create table documents (
   source integer not null,
   metadata jsonb not null default '{}',
   external_id text not null,
-  created_by uuid not null references auth.users (id) default auth.uid(),
+  created_by uuid not null references users (id),
+  app_id uuid not null references apps (id),
   created_at timestamp with time zone not null default now(),
   updated_at timestamp with time zone not null default now(),
   unique (external_id)
 );
 
-CREATE UNIQUE INDEX documents_external_id_idx ON documents USING btree (external_id);
+create unique index documents_external_id_idx on documents using btree (external_id);
 
 create table document_chunks (
   id bigint primary key generated always as identity,
+  app_id uuid not null references apps (id),
   document_id bigint not null references documents (id) on delete cascade,
   content text not null,
   embedding vector(384),
@@ -64,3 +68,5 @@ create trigger on_document_insert
   after insert on documents
   for each row
   execute procedure handle_document_insert();
+
+commit;

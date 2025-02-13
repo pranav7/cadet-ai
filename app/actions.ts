@@ -10,17 +10,25 @@ export async function signUpAction(formData: FormData) {
 
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
-  const name = formData.get("name") as string;
+  const firstName = formData.get("first-name") as string;
+  const lastName = formData.get("last-name") as string;
+  const appName = formData.get("app-name") as string;
+  const appSlug = appName.toLowerCase().replace(/ /g, "-");
 
   const { data: authUser, error: authError } = await supabase.auth.signUp({
     email,
     password,
     options: {
       data: {
-        full_name: name,
+        app_name: appName,
+        app_slug: appSlug,
+        first_name: firstName,
+        last_name: lastName,
       },
     },
   });
+
+  console.log(authError);
 
   if (authError || !authUser) {
     return encodedRedirect(
