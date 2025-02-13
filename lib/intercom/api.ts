@@ -1,5 +1,5 @@
 import { createClient } from "@/utils/supabase/server";
-import { IntercomConversation } from "@/lib/intercom/types";
+import { IntercomConversation, IntercomUser } from "@/lib/intercom/types";
 import TurndownService from "turndown";
 
 class IntercomApi {
@@ -104,6 +104,44 @@ class IntercomApi {
     if (!response.ok) {
       throw new Error(
         `Failed to fetch conversation details: ${response.statusText}`,
+      );
+    }
+
+    return response.json();
+  }
+
+  async getIntercomContact(contactId: string): Promise<IntercomUser> {
+    const apiKey = await this._getIntercomApiKey();
+    const url = `https://api.intercom.io/contacts/${contactId}`;
+    const response = await fetch(url, {
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Accept": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `Failed to fetch contact details: ${response.statusText}`,
+      );
+    }
+
+    return response.json();
+  }
+
+  async getIntercomTeammate(teammateId: string): Promise<IntercomUser> {
+    const apiKey = await this._getIntercomApiKey();
+    const url = `https://api.intercom.io/admins/${teammateId}`;
+    const response = await fetch(url, {
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Accept": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `Failed to fetch teammate details: ${response.statusText}`,
       );
     }
 

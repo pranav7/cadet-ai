@@ -9,6 +9,13 @@ export interface IntercomMessage {
   };
 }
 
+export interface IntercomUser {
+  id: string;
+  name: string;
+  email: string;
+  type: "contact" | "teammate";
+}
+
 export interface IntercomConversation {
   id: string;
   created_at: number;
@@ -16,6 +23,12 @@ export interface IntercomConversation {
   title: string;
   conversation_parts: {
     conversation_parts: IntercomMessage[];
+  };
+  contacts: {
+    contacts: IntercomUser[];
+  };
+  teammates: {
+    teammates: IntercomUser[];
   };
 }
 
