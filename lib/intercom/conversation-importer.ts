@@ -33,7 +33,7 @@ async function processConversationsBatch(
       const details = await IntercomApi.getConversationDetails(conversation.id);
       const content = IntercomApi.conversationToMarkdown(details);
 
-      const { error: insertError } = await supabase
+      const { data: document, error: insertError } = await supabase
         .from("documents")
         .insert({
           name: details.title || `Intercom conversation ${conversation.id}`,
@@ -43,7 +43,9 @@ async function processConversationsBatch(
           created_at: new Date(details.created_at * 1000).toISOString(),
           external_id: conversation.id,
           app_id: appId,
-        });
+        })
+        .select()
+        .single();
 
       if (insertError) {
         console.error(
@@ -54,10 +56,8 @@ async function processConversationsBatch(
 
       try {
         const contact_ids = details.contacts.contacts?.map((contact) => contact.id);
-        const teammate_ids = details.teammates.teammates?.map((teammate) => teammate.id);
-        console.log(`[${conversation.id}] Fetching contacts and teammates. Found ${contact_ids?.length} contacts and ${teammate_ids?.length} teammates`);
+        console.log(`[${conversation.id}] Fetching contacts and teammates. Found ${contact_ids?.length} contacts`);
         const contacts = await Promise.all(contact_ids?.map(async (id) => IntercomApi.getIntercomContact(id)) || []);
-        const teammates = await Promise.all(teammate_ids?.map(async (id) => IntercomApi.getIntercomTeammate(id)) || []);
 
         console.log(`[${conversation.id}] Inserting contacts`);
         await supabase.from("end_users").insert(contacts.map((contact) => ({
@@ -68,14 +68,12 @@ async function processConversationsBatch(
           type: EndUserTypes.user,
         })));
 
-        console.log(`[${conversation.id}] Inserting teammates`);
-        await supabase.from("end_users").insert(teammates.map((teammate) => ({
-          email: teammate.email,
-          first_name: teammate.name,
-          last_name: teammate.name,
-          app_id: appId,
-          type: EndUserTypes.admin,
-        })));
+        if (document) {
+          await supabase.from("end_user_documents").insert(contacts.map((contact) => ({
+            end_user_id: contact.id,
+            document_id: document.id,
+          })));
+        }
       } catch (error) {
         console.error(`[${conversation.id}] Error fetching contacts and teammates:`, error);
         console.log(`[${conversation.id}] Skipping creating contacts and teammates for this conversation`);
