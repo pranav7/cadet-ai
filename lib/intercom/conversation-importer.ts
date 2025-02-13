@@ -62,8 +62,8 @@ async function processConversationsBatch(
         console.log(`[${conversation.id}] Inserting contacts`);
         await supabase.from("end_users").insert(contacts.map((contact) => ({
           email: contact.email,
-          first_name: contact.name.split(" ")[0],
-          last_name: contact.name.split(" ").slice(1).join(" "),
+          first_name: contact.name?.split(" ")[0] || "",
+          last_name: contact.name?.split(" ")?.slice(1).join(" ") || "",
           app_id: appId,
           type: EndUserTypes.user,
         })));
