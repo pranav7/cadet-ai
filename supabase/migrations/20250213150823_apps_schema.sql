@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists "uuid-ossp";
 
-create table apps (
+create table public.apps (
   id uuid primary key default uuid_generate_v4(),
   name text not null,
   slug text not null unique,
@@ -16,7 +16,7 @@ create table apps (
 
 create unique index on apps using btree (slug);
 
-create table users (
+create table public.users (
   id uuid primary key default uuid_generate_v4(),
   email text not null unique,
   first_name text not null,
