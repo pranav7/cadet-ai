@@ -42,7 +42,7 @@ export default function RootLayout({
                 <div className="w-full max-w-5xl flex justify-between items-center p-3 px-5 text-sm">
                   <div className="flex gap-5 items-center font-semibold">
                     <Link href={"/"}>Home</Link>
-                    <Link href={"/intercom"}>Intercom set up</Link>
+                    <Link href={"/intercom"}>Intercom</Link>
                   </div>
                   {!hasEnvVars ? <EnvVarWarning /> : <HeaderAuth />}
                 </div>
