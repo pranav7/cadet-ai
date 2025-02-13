@@ -1,5 +1,3 @@
-begin;
-
 create function embed()
 returns trigger
 language plpgsql
@@ -39,5 +37,3 @@ create trigger embed_document_chunks
   referencing new table as inserted
   for each statement
   execute procedure embed('content', 'embedding', 100);
-
-commit;

@@ -1,5 +1,3 @@
-begin;
-
 create table if not exists intercom_settings (
   id bigint primary key generated always as identity,
   app_id uuid not null references apps (id),
@@ -9,5 +7,3 @@ create table if not exists intercom_settings (
   updated_at timestamp with time zone default now(),
   unique(created_by)
 );
-
-commit;

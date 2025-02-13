@@ -1,5 +1,3 @@
-begin;
-
 create table end_users (
   id uuid primary key default uuid_generate_v4(),
   email text not null unique,
@@ -22,5 +20,3 @@ create table end_user_documents (
 );
 
 create unique index on end_user_documents using btree (end_user_id, document_id);
-
-commit;

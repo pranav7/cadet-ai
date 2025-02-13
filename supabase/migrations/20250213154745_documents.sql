@@ -1,5 +1,3 @@
-begin;
-
 create extension if not exists pg_net with schema extensions;
 create extension if not exists vector with schema extensions;
 
@@ -68,5 +66,3 @@ create trigger on_document_insert
   after insert on documents
   for each row
   execute procedure handle_document_insert();
-
-commit;

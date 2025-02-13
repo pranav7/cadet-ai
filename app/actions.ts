@@ -5,42 +5,6 @@ import { createClient } from "@/utils/supabase/server";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-export async function signUpAction(formData: FormData) {
-  const supabase = await createClient();
-
-  const email = formData.get("email") as string;
-  const password = formData.get("password") as string;
-  const firstName = formData.get("first-name") as string;
-  const lastName = formData.get("last-name") as string;
-  const appName = formData.get("app-name") as string;
-  const appSlug = appName.toLowerCase().replace(/ /g, "-");
-
-  const { data: authUser, error: authError } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: {
-        app_name: appName,
-        app_slug: appSlug,
-        first_name: firstName,
-        last_name: lastName,
-      },
-    },
-  });
-
-  console.log(authError);
-
-  if (authError || !authUser) {
-    return encodedRedirect(
-      "error",
-      "/sign-up",
-      authError?.message || "Error creating user",
-    );
-  }
-
-  return redirect("/protected");
-}
-
 export const signInAction = async (formData: FormData) => {
   const supabase = await createClient();
   const email = formData.get("email") as string;
