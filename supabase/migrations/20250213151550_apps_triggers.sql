@@ -8,7 +8,7 @@ as $$
 declare
   v_app_id uuid;
 begin
-  insert into apps (name, slug, created_by)
+  insert into public.apps (name, slug, created_by)
   values (
     new.raw_user_meta_data ->> 'app_name',
     new.raw_user_meta_data ->> 'app_slug',
@@ -16,7 +16,9 @@ begin
   )
   returning id into v_app_id;
 
-  insert into users (email, first_name, last_name, auth_id, app_id)
+  perform pg_notify('app_created', v_app_id::text);
+  perform pg_sleep(1);
+  insert into public.users (email, first_name, last_name, auth_id, app_id)
   values (
     new.email,
     new.raw_user_meta_data ->> 'first_name',
