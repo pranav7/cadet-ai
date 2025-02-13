@@ -21,27 +21,17 @@ export async function signUpAction(formData: FormData) {
       data: {
         first_name: firstName,
         last_name: lastName,
+        app_name: appName,
+        app_slug: appSlug
       },
     },
   });
 
-  console.log("authError", authError, "authUser", authUser);
-  const { data: app, error: appError } = await supabase
-    .from("apps")
-    .insert({
-      name: appName,
-      slug: appSlug,
-      created_by: authUser?.user?.id,
-    })
-    .select()
-    .single();
-  console.log("appError", appError, "app", app);
-
-  if (authError || !authUser || appError || !app) {
+  if (authError || !authUser) {
     return encodedRedirect(
       "error",
       "/sign-up",
-      authError?.message || appError?.message || "Error signing up",
+      authError?.message || "Error signing up"
     );
   }
 
