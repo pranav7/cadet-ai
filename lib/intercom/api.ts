@@ -11,16 +11,16 @@ class IntercomApi {
 
   async _getIntercomApiKey() {
     const supabase = await createClient();
-    const { data: authUser } = await supabase.auth.getUser();
+    const { data: currentUser } = await supabase.rpc('get_current_user');
 
-    if (!authUser?.user) {
+    if (!currentUser) {
       throw new Error("User not found");
     }
 
     const { data: settings, error: settingsError } = await supabase
       .from("intercom_settings")
       .select("*")
-      .eq("created_by", authUser.user.id)
+      .eq("created_by", currentUser.id)
       .single();
 
     if (settingsError || !settings?.api_key) {

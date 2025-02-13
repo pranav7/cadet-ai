@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Sources } from "@/constants/sources";
 import ReactMarkdown from 'react-markdown';
 import { toast } from "sonner"
-import { User } from "@supabase/supabase-js";
+import { Tables } from "@/types/database";
 
 interface Document {
   id: number;
@@ -28,20 +28,17 @@ interface IntercomSettings {
 
 export default function IntercomPage() {
   const [settings, setSettings] = useState<IntercomSettings | null>(null);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [documentCount, setDocumentCount] = useState<number | null>(null);
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<Tables<'users'> | null>(null);
+  const [app, setApp] = useState<Tables<'apps'> | null>(null);
   const supabase = createClient();
 
   const loadSettings = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-
     if (!user) {
-      setError("You must be logged in to manage Intercom settings");
-      setLoading(false);
+      console.log("no user");
       return;
     }
 
@@ -56,8 +53,7 @@ export default function IntercomPage() {
     } else {
       setSettings(data || { enabled: false, api_key: null });
     }
-    setLoading(false);
-  }, [supabase]);
+  }, [supabase, user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,24 +61,22 @@ export default function IntercomPage() {
     setSaving(true);
     setError(null);
 
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      setError('You must be logged in to manage Intercom settings');
+    if (!user || !app) {
+      setError("You must be logged in to manage Intercom settings");
       setSaving(false);
       return;
     }
+    console.log("creating settings for user, app", user, app);
 
     const formData = new FormData(form);
     const api_key = formData.get('api_key') as string;
 
     const { error } = await supabase
       .from('intercom_settings')
-      .upsert({
+      .insert({
+        app_id: app.id,
         created_by: user.id,
         api_key: api_key || null,
-      }, {
-        onConflict: 'created_by'
       });
 
     if (error) {
@@ -131,8 +125,10 @@ export default function IntercomPage() {
 
   useEffect(() => {
     const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      setUser(user);
+      const { data: currentUser } = await supabase.rpc('get_current_user');
+      const { data: currentApp } = await supabase.rpc('get_current_app');
+      setUser(currentUser);
+      setApp(currentApp);
     }
     getUser();
   }, [supabase]);
@@ -155,7 +151,7 @@ export default function IntercomPage() {
     }
   }, [loadSettings, user]);
 
-  if (loading) {
+  if (!user || !app) {
     return <div className="p-4">Loading...</div>;
   }
 
