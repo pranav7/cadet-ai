@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Sources } from "@/constants/sources";
 import ReactMarkdown from 'react-markdown';
 import { toast } from "sonner"
+import { User } from "@supabase/supabase-js";
 
 interface Document {
   id: number;
@@ -32,6 +33,7 @@ export default function IntercomPage() {
   const [error, setError] = useState<string | null>(null);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [documentCount, setDocumentCount] = useState<number | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const supabase = createClient();
 
   const loadSettings = useCallback(async () => {
@@ -117,6 +119,7 @@ export default function IntercomPage() {
       .from('documents')
       .select('*')
       .eq('source', Sources.Intercom)
+      .eq('created_by', user?.id || '')
       .limit(50);
 
     if (error) {
@@ -124,19 +127,33 @@ export default function IntercomPage() {
     } else {
       setDocuments(data || []);
     }
+  }, [supabase, user]);
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      setUser(user);
+    }
+    getUser();
   }, [supabase]);
 
   useEffect(() => {
-    loadDocuments();
-  }, [loadDocuments]);
+    if (user) {
+      loadDocuments();
+    }
+  }, [loadDocuments, user]);
 
   useEffect(() => {
-    countDocuments().then(setDocumentCount);
-  }, [countDocuments]);
+    if (user) {
+      countDocuments().then(setDocumentCount);
+    }
+  }, [countDocuments, user]);
 
-  useEffect(()=> {
-    loadSettings();
-  }, [loadSettings]);
+  useEffect(() => {
+    if (user) {
+      loadSettings();
+    }
+  }, [loadSettings, user]);
 
   if (loading) {
     return <div className="p-4">Loading...</div>;
