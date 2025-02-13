@@ -58,6 +58,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     .from("document_chunks")
     .insert(chunks.map((chunk) => ({
       document_id,
+      app_id: document.app_id,
       content: chunk,
     })))
     .select();
