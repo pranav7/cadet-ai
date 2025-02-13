@@ -53,9 +53,11 @@ async function processConversationsBatch(
 
       const contact_ids = details.contacts.contacts.map((contact) => contact.id);
       const teammate_ids = details.teammates.teammates.map((teammate) => teammate.id);
+      console.log(`[${conversation.id}] Fetching contacts and teammates. Found ${contact_ids.length} contacts and ${teammate_ids.length} teammates`);
       const contacts = await Promise.all(contact_ids.map(async (id) => IntercomApi.getIntercomContact(id)));
       const teammates = await Promise.all(teammate_ids.map(async (id) => IntercomApi.getIntercomTeammate(id)));
 
+      console.log(`[${conversation.id}] Inserting contacts`);
       await supabase.from("end_users").insert(contacts.map((contact) => ({
         email: contact.email,
         first_name: contact.name,
@@ -64,6 +66,7 @@ async function processConversationsBatch(
         type: EndUserTypes.user,
       })));
 
+      console.log(`[${conversation.id}] Inserting teammates`);
       await supabase.from("end_users").insert(teammates.map((teammate) => ({
         email: teammate.email,
         first_name: teammate.name,
@@ -72,23 +75,16 @@ async function processConversationsBatch(
         type: EndUserTypes.admin,
       })));
 
-      console.log(`[${conversation.id}] Processed conversation`);
+      console.log(`[${conversation.id}] ✔️ Conversation imported!`);
     } catch (error) {
       console.error(`[${conversation.id}] Processing error:`, error);
     }
   }
 }
 
-export async function importConversations(createdAfter: Date = new Date("2024-01-01")) {
-  const supabase = await createClient();
-  const { data: user } = await supabase.auth.getUser();
-
-  if (!user?.user) {
-    throw new Error("User not found");
-  }
-
+export async function importConversations(userId: string, appId: number, createdAfter: Date = new Date("2024-01-01")) {
   console.log("Starting background import ...");
-  backgroundImport(user.user.id, 0, createdAfter);
+  backgroundImport(userId, appId, createdAfter);
   console.log("Background import started");
 
   return {
