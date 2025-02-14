@@ -1,8 +1,9 @@
 import { createClient } from "@/utils/supabase/server";
 import IntercomApi from "@/lib/intercom/api";
-import { IntercomConversation } from "@/lib/intercom/types";
+import { IntercomConversation, IntercomUser } from "@/lib/intercom/types";
 import { Sources } from "@/constants/sources";
 import { EndUserTypes } from "@/constants/end-user-types";
+import { SupabaseClient } from "@supabase/supabase-js";
 
 async function processConversationsBatch(
   conversations: IntercomConversation[],
@@ -60,20 +61,18 @@ async function processConversationsBatch(
         const contacts = await Promise.all(contact_ids?.map(async (id) => IntercomApi.getIntercomContact(id)) || []);
 
         console.log(`[${conversation.id}] Inserting contacts`);
-        await supabase.from("end_users").insert(contacts.map((contact) => ({
-          email: contact.email,
-          first_name: contact.name?.split(" ")[0] || "",
-          last_name: contact.name?.split(" ")?.slice(1).join(" ") || "",
-          app_id: appId,
-          type: EndUserTypes.user,
-        })));
+        await Promise.all(contacts.map(async (contact) => {
+          const endUser = await _findOrCreateEndUser(contact, appId, supabase);
 
-        if (document) {
-          await supabase.from("end_user_documents").insert(contacts.map((contact) => ({
-            end_user_id: contact.id,
-            document_id: document.id,
-          })));
-        }
+          if (document) {
+            await supabase.from("end_user_documents").insert({
+              end_user_id: endUser.id,
+              document_id: document.id,
+            });
+          }
+
+          console.log(`[${conversation.id}] Created new user ${contact.email}`);
+        }));
       } catch (error) {
         console.error(`[${conversation.id}] Error fetching contacts and teammates:`, error);
         console.log(`[${conversation.id}] Skipping creating contacts and teammates for this conversation`);
@@ -133,4 +132,31 @@ async function backgroundImport(userId: string, appId: number, createdAfter?: Da
   } catch (error) {
     console.error("Background import failed:", error);
   }
+}
+
+async function _findOrCreateEndUser(contact: IntercomUser, appId: number, supabase: SupabaseClient) {
+  const { data: endUser } = await supabase
+    .from("end_users")
+    .select()
+    .eq("email", contact.email)
+    .eq("app_id", appId)
+    .maybeSingle();
+
+  if (!endUser) {
+    const { data: newUser, error: insertError } = await supabase
+      .from("end_users")
+      .insert({
+        email: contact.email,
+        first_name: contact.name?.split(" ")[0] || "",
+        last_name: contact.name?.split(" ")?.slice(1).join(" ") || "",
+        app_id: appId,
+        type: EndUserTypes.user,
+      })
+      .select()
+      .single();
+
+    return newUser;
+  }
+
+  return endUser;
 }
