@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
-import ConversationImporter from "@/lib/intercom/conversation-importer";
+import { importConversations } from "@/lib/intercom/conversation-importer";
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -13,8 +13,8 @@ export async function POST(request: Request) {
   }
 
   const { limit } = await request.json();
-  const importer = new ConversationImporter(currentUser.id, app.id, undefined, limit);
-  await importer.import();
+
+  await importConversations({ userId: currentUser.id, appId: app.id, limit });
 
   return NextResponse.json({ success: true });
 }

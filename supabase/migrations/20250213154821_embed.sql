@@ -9,7 +9,6 @@ declare
   timeout_milliseconds int = case when array_length(TG_ARGV, 1) >= 4 then TG_ARGV[3]::int else 5 * 60 * 1000 end;
   batch_count int = ceiling((select count(*) from inserted) / batch_size::float);
 begin
-  -- Loop through each batch and invoke an edge function to handle the embedding generation
   for i in 0 .. (batch_count-1) loop
   perform
     net.http_post(

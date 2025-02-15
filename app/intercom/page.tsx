@@ -10,7 +10,6 @@ import { toast } from "sonner"
 import { Tables } from "@/types/database";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { redirect } from "next/navigation";
 
 interface Document {
   id: number;

@@ -32,11 +32,15 @@ class IntercomApi {
     return settings?.api_key;
   }
 
-  async getIntercomConversations(
-    startingAfter?: string | null,
+  async getIntercomConversations({
+    startingAfter,
     batchSize = 100,
-    createdAfter: Date = new Date("2024-01-01"),
-  ): Promise<{
+    createdAfter = new Date("2024-01-01"),
+  }: {
+    startingAfter?: string | null,
+    batchSize?: number,
+    createdAfter?: Date,
+  }): Promise<{
     conversations: IntercomConversation[];
     nextStartingAfter: string | null;
     totalCount: number;
@@ -89,9 +93,11 @@ class IntercomApi {
     };
   }
 
-  async getConversationDetails(
+  async getConversationDetails({
+    conversationId,
+  }: {
     conversationId: string,
-  ): Promise<IntercomConversation> {
+  }): Promise<IntercomConversation> {
     const apiKey = await this._getIntercomApiKey();
     const url = `https://api.intercom.io/conversations/${conversationId}`;
     const response = await fetch(url, {
@@ -110,7 +116,11 @@ class IntercomApi {
     return response.json();
   }
 
-  async getIntercomContact(contactId: string): Promise<IntercomUser> {
+  async getIntercomContact({
+    contactId,
+  }: {
+    contactId: string,
+  }): Promise<IntercomUser> {
     const apiKey = await this._getIntercomApiKey();
     const url = `https://api.intercom.io/contacts/${contactId}`;
     const response = await fetch(url, {
@@ -129,7 +139,11 @@ class IntercomApi {
     return response.json();
   }
 
-  async getIntercomTeammate(teammateId: string): Promise<IntercomUser> {
+  async getIntercomTeammate({
+    teammateId,
+  }: {
+    teammateId: string,
+  }): Promise<IntercomUser> {
     const apiKey = await this._getIntercomApiKey();
     const url = `https://api.intercom.io/admins/${teammateId}`;
     const response = await fetch(url, {
@@ -148,7 +162,11 @@ class IntercomApi {
     return response.json();
   }
 
-  conversationToMarkdown(conversation: IntercomConversation): string {
+  conversationToMarkdown({
+    conversation,
+  }: {
+    conversation: IntercomConversation,
+  }): string {
     const messages = conversation.conversation_parts.conversation_parts;
     let markdown = `# Conversation ${conversation.id}\n\n`;
     markdown += `Created: ${

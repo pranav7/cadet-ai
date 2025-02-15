@@ -1,4 +1,4 @@
-import { Tables } from "../_lib/database.ts";
+import { Tables } from "../_lib/database.types.ts";
 import { TextSplitter } from "../_lib/text-splitter.ts";
 import { SupabaseClient } from "@supabase/supabase-js";
 

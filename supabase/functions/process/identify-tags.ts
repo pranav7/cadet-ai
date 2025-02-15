@@ -14,6 +14,7 @@ export const identifyTags = async (
   supabase: SupabaseClient,
   document: Tables<"documents">,
 ) => {
+  console.log(`[Identify Tags] Document: ${JSON.stringify(document)}`);
   const appId = document.app_id;
   const { data: availableTagsData, error: availableTagsError } = await supabase
     .from("tags")
@@ -26,6 +27,7 @@ export const identifyTags = async (
   }
 
   const availableTags = availableTagsData.map((tag) => tag.name);
+  console.log(`[Identify Tags] Available tags: ${availableTags.join(", ")}`);
 
   const systemPrompt = codeBlock`
     You are a helpful assistant that identifies the most relevant tags for a given document.
@@ -74,7 +76,9 @@ export const identifyTags = async (
     response_format: zodResponseFormat(TagResponseSchema, "tagResponse"),
   });
 
+
   const { existingTags, newTags } = response.choices[0].message.parsed;
+  console.log(`[Identify Tags] OpenAI response. Existing tags: ${existingTags.join(", ")}, New tags: ${newTags.join(", ")}`);
 
   if (!existingTags || !newTags) {
     console.log("Failed to identify tags");

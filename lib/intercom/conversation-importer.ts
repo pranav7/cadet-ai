@@ -3,87 +3,83 @@ import IntercomApi from "@/lib/intercom/api";
 import { IntercomConversation, IntercomUser } from "@/lib/intercom/types";
 import { Sources } from "@/constants/sources";
 import { EndUserTypes } from "@/constants/end-user-types";
-import { SupabaseClient } from "@supabase/supabase-js";
+import { chunk } from '@/utils/array';
 
-export default class ConversationImporter {
-  private supabase?: SupabaseClient;
+export async function importConversations({
+  userId,
+  appId,
+  createdAfter = new Date("2024-01-01"),
+  limit,
+}: {
+  userId: string,
+  appId: number,
+  createdAfter?: Date,
+  limit?: number,
+}) {
+  console.log("[importConversations] Starting import...");
 
-  constructor(
-    private readonly userId: string,
-    private readonly appId: number,
-    private readonly createdAfter: Date = new Date("2024-01-01"),
-    private readonly limit?: number,
-  ) {
-    this.userId = userId;
-    this.appId = appId;
-    this.createdAfter = createdAfter;
-    this.limit = limit;
-  }
+  await backgroundImport({ userId, appId, createdAfter, limit });
 
-  async import() {
-    console.log("Starting background import ...");
-    this.supabase = await createClient();
-    await this._backgroundImport();
-    console.log("Background import started");
+  return {
+    success: true,
+    message: "Import started in background. Check logs for progress.",
+  };
+}
 
-    return {
-      success: true,
-      message: "Import started in background. Check logs for progress."
-    };
-  }
+async function backgroundImport({
+  userId,
+  appId,
+  createdAfter,
+  limit,
+}: {
+  userId: string,
+  appId: number,
+  createdAfter: Date,
+  limit?: number,
+}) {
+  let startingAfter: string | null = null;
+  let totalProcessed = 0;
 
-  private async _backgroundImport() {
-    let startingAfter: string | null = null;
-    let totalProcessed = 0;
+  try {
+    while (true) {
+      const { conversations, nextStartingAfter } =
+        await IntercomApi.getIntercomConversations({
+          startingAfter,
+          batchSize: 25,
+          createdAfter,
+        });
 
-    console.log("Starting background import loop ...");
-    try {
-      while (true) {
-        const { conversations, nextStartingAfter, totalCount } =
-          await IntercomApi.getIntercomConversations(
-            startingAfter,
-            100,
-            this.createdAfter,
-          );
+      if (conversations.length === 0) break;
 
-        if (conversations.length === 0) {
-          console.log("No more conversations to process");
-          break;
-        }
+      await processConversationsBatch({ conversations, userId, appId });
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-        console.log("Processing batch of", conversations.length, "conversations");
-        await this._processConversationsBatch(conversations);
+      totalProcessed += conversations.length;
+      if (limit && totalProcessed >= limit) break;
+      if (!nextStartingAfter) break;
 
-        totalProcessed += conversations.length;
-        console.log(`Processed ${totalProcessed} of ${totalCount} conversations`);
-
-        if (this.limit && totalProcessed >= this.limit) {
-          console.log(`Reached limit of ${this.limit} conversations`);
-          break;
-        }
-
-        if (!nextStartingAfter) {
-          break;
-        }
-
-        startingAfter = nextStartingAfter;
-      }
-
-      console.log(`Background import completed. Processed ${totalProcessed} conversations`);
-    } catch (error) {
-      console.error("Background import failed:", error);
+      startingAfter = nextStartingAfter;
     }
+  } catch (error) {
+    console.error("[backgroundImport] Import failed:", error);
   }
+}
 
-  private async _processConversationsBatch(
-    conversations: IntercomConversation[],
-  ) {
-    const supabase = await createClient();
+async function processConversationsBatch({
+  conversations,
+  userId,
+  appId,
+}: {
+  conversations: IntercomConversation[],
+  userId: string,
+  appId: number,
+}) {
+  const batches = chunk(conversations, 5);
 
-    for (const conversation of conversations) {
+  for (const batchConversations of batches) {
+    await Promise.all(batchConversations.map(async (conversation) => {
       try {
-        console.log(`[${conversation.id}] Starting processing`);
-
+        const supabase = await createClient();
         const { data: existing } = await supabase
           .from("documents")
           .select("id")
@@ -91,99 +87,92 @@ export default class ConversationImporter {
           .eq("external_id", conversation.id)
           .maybeSingle();
 
-        if (existing) {
-          console.log(
-            `[${conversation.id}] Found existing document for conversation, skipping ...`
-          );
-          continue;
-        }
+        if (existing) return;
 
-        console.log(`[${conversation.id}] Fetching conversation details`);
-        const details = await IntercomApi.getConversationDetails(conversation.id);
-        const content = IntercomApi.conversationToMarkdown(details);
+        const details = await IntercomApi.getConversationDetails({
+          conversationId: conversation.id,
+        });
+
+        let content = IntercomApi.conversationToMarkdown({
+          conversation: details,
+        });
 
         const { data: document, error: insertError } = await supabase
           .from("documents")
           .insert({
             name: details.title || `Intercom conversation ${conversation.id}`,
-            created_by: this.userId,
+            created_by: userId,
             content,
             source: Sources.Intercom,
             created_at: new Date(details.created_at * 1000).toISOString(),
             external_id: conversation.id,
-            app_id: this.appId,
+            app_id: appId,
+            processed: false,
           })
           .select()
           .single();
 
-        if (insertError) {
-          console.error(
-            `[${conversation.id}] Failed to insert conversation:`,
-            insertError
+        if (insertError) throw insertError;
+
+        const contact_ids = details.contacts.contacts?.map((contact) => contact.id) || [];
+        const contactBatches = chunk(contact_ids, 5);
+
+        for (const contactBatch of contactBatches) {
+          const contacts = await Promise.all(
+            contactBatch.map(id => IntercomApi.getIntercomContact({ contactId: id }))
           );
 
-          throw insertError;
-        }
-
-        try {
-          const contact_ids = details.contacts.contacts?.map((contact) => contact.id);
-          console.log(`[${conversation.id}] Fetching contacts and teammates. Found ${contact_ids?.length} contacts`);
-          const contacts = await Promise.all(contact_ids?.map(async (id) => IntercomApi.getIntercomContact(id)) || []);
-
-          console.log(`[${conversation.id}] Inserting contacts`);
           await Promise.all(contacts.map(async (contact) => {
-            const endUser = await this._findOrCreateEndUser(contact);
-
-            if (document && this.supabase) {
-              await this.supabase.from("end_user_documents").insert({
+            const endUser = await findOrCreateEndUser({ contact, appId });
+            if (document && endUser) {
+              await supabase.from("end_user_documents").insert({
                 end_user_id: endUser.id,
                 document_id: document.id,
               });
             }
-
-            console.log(`[${conversation.id}] Created new user ${contact.email}`);
           }));
-        } catch (error) {
-          console.error(`[${conversation.id}] Error fetching contacts and teammates:`, error);
-          console.log(`[${conversation.id}] Skipping creating contacts and teammates for this conversation`);
-        }
 
-        console.log(`[${conversation.id}] ✔️ Conversation imported!`);
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
       } catch (error) {
         console.error(`[${conversation.id}] Processing error:`, error);
       }
-    }
+    }));
+
+    await new Promise(resolve => setTimeout(resolve, 1000));
   }
+}
 
-  private async _findOrCreateEndUser(contact: IntercomUser) {
-    if (!this.supabase) {
-      console.error("Supabase client not initialized");
-      return null;
-    }
+async function findOrCreateEndUser({
+  contact,
+  appId,
+}: {
+  contact: IntercomUser,
+  appId: number,
+}) {
+  const supabase = await createClient();
+  const { data: endUser } = await supabase
+    .from("end_users")
+    .select()
+    .eq("email", contact.email)
+    .eq("app_id", appId)
+    .maybeSingle();
 
-    const { data: endUser } = await this.supabase
+  if (!endUser) {
+    const { data: newUser } = await supabase
       .from("end_users")
+      .insert({
+        email: contact.email,
+        first_name: contact.name?.split(" ")[0] || "",
+        last_name: contact.name?.split(" ")?.slice(1).join(" ") || "",
+        app_id: appId,
+        type: EndUserTypes.user,
+      })
       .select()
-      .eq("email", contact.email)
-      .eq("app_id", this.appId)
-      .maybeSingle();
+      .single();
 
-    if (!endUser) {
-      const { data: newUser } = await this.supabase
-        .from("end_users")
-        .insert({
-          email: contact.email,
-          first_name: contact.name?.split(" ")[0] || "",
-          last_name: contact.name?.split(" ")?.slice(1).join(" ") || "",
-          app_id: this.appId,
-          type: EndUserTypes.user,
-        })
-        .select()
-        .single();
-
-      return newUser;
-    }
-
-    return endUser;
+    return newUser;
   }
+
+  return endUser;
 }

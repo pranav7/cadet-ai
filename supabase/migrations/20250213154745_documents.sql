@@ -9,6 +9,7 @@ create table documents (
   metadata jsonb not null default '{}',
   external_id text not null,
   summary text,
+  processed boolean default false,
   created_by uuid not null references users (id),
   app_id uuid not null references apps (id),
   created_at timestamp with time zone not null default now(),
@@ -30,27 +31,44 @@ create table document_chunks (
 
 create index on document_chunks using hnsw (embedding vector_ip_ops);
 
+create function supabase_url()
+returns text
+language plpgsql
+security definer
+as $$
+declare
+  secret_value text;
+begin
+  select decrypted_secret into secret_value from vault.decrypted_secrets where name = 'supabase_url';
+  return secret_value;
+end;
+$$;
+
 create function handle_document_insert()
 returns trigger
 language plpgsql
 as $$
+declare
+  result int;
 begin
-  perform net.http_post(
-    url := '/functions/v1/process',
-    headers := jsonb_build_object(
-      'Content-Type', 'application/json',
-      'Authorization', current_setting('request.headers')::json->>'authorization'
-    ),
-    body := jsonb_build_object(
-      'document_id', new.id
+  select
+    net.http_post(
+      url := supabase_url() || '/functions/v1/process',
+      headers := jsonb_build_object(
+        'Content-Type', 'application/json',
+        'Authorization', current_setting('request.headers')::json->>'authorization'
+      ),
+      body := jsonb_build_object(
+        'document_id', new.id
+      )
     )
-  );
+  into result;
 
-  return new;
+  return null;
 end;
 $$;
 
-create trigger on_document_insert
+create trigger handle_document_insert_trigger
   after insert on documents
   for each row
   execute procedure handle_document_insert();
