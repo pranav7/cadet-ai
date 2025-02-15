@@ -5,7 +5,9 @@
     "@langchain/textsplitters": "npm:@langchain/textsplitters",
     "ai": "https://esm.sh/ai@4.1.3",
     "openai": "https://esm.sh/openai@4.83.0",
+    "openai/": "https://esm.sh/openai@4.83.0/",
     "common-tags": "https://esm.sh/common-tags@1.8.2",
-    "ai-sdk-openai": "npm:@ai-sdk/openai"
+    "ai-sdk-openai": "npm:@ai-sdk/openai",
+    "zod": "npm:zod"
   }
 }
