@@ -41,8 +41,8 @@ export default function IntercomPage() {
   const supabase = createClient();
 
   const loadSettings = useCallback(async () => {
-    if (!user) {
-      console.log("no user");
+    if (!user || !app) {
+      console.log("no user or app");
       return;
     }
 
@@ -119,8 +119,8 @@ export default function IntercomPage() {
     const { data, error } = await supabase
       .from('documents')
       .select('*')
+      .eq('app_id', app?.id || '')
       .eq('source', Sources.Intercom)
-      .eq('created_by', user?.id || '')
       .limit(50);
 
     if (error) {
