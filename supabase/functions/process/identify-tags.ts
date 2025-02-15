@@ -83,6 +83,7 @@ export const identifyTags = async (
 
   const newTagsData = await createTags(supabase, appId, newTags);
   const existingTagsData = await findTags(supabase, appId, existingTags);
+
   const tagsToApply: Tables<"tags">[] = [];
   if (existingTagsData) tagsToApply.push(...existingTagsData);
   if (newTagsData) tagsToApply.push(...newTagsData);
@@ -94,7 +95,7 @@ const createTags = async (
   supabase: SupabaseClient,
   appId: string,
   tags: string[],
-) => {
+): Promise<Tables<"tags">[]> => {
   const { data: tagsData } = await supabase
     .from("tags")
     .insert(
@@ -103,23 +104,24 @@ const createTags = async (
         slug: tag.toLowerCase().replace(/ /g, "-"),
         app_id: appId,
       })),
-    );
+    )
+    .select();
 
-  return tagsData;
+  return tagsData || [];
 };
 
 const findTags = async (
   supabase: SupabaseClient,
   appId: string,
   tags: string[],
-) => {
+): Promise<Tables<"tags">[]> => {
   const { data: tagsData } = await supabase
     .from("tags")
     .select("*")
     .eq("app_id", appId)
     .in("slug", tags.map((tag) => tag.toLowerCase().replace(/ /g, "-")));
 
-  return tagsData;
+  return tagsData || [];
 };
 
 const applyTags = async (
