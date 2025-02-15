@@ -8,6 +8,9 @@ import { Sources } from "@/constants/sources";
 import ReactMarkdown from 'react-markdown';
 import { toast } from "sonner"
 import { Tables } from "@/types/database";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { redirect } from "next/navigation";
 
 interface Document {
   id: number;
@@ -34,12 +37,13 @@ export default function IntercomPage() {
   const [documentCount, setDocumentCount] = useState<number | null>(null);
   const [user, setUser] = useState<Tables<'users'> | null>(null);
   const [app, setApp] = useState<Tables<'apps'> | null>(null);
+  const [testRun, setTestRun] = useState(false);
   const supabase = createClient();
 
   const loadSettings = useCallback(async () => {
     if (!user) {
       console.log("no user");
-      return;
+      redirect("/");
     }
 
     const { data, error } = await supabase
@@ -92,6 +96,9 @@ export default function IntercomPage() {
     try {
       await fetch("/intercom/api", {
         method: "POST",
+        body: JSON.stringify({
+          limit: testRun ? 10 : undefined,
+        }),
       });
       toast.success("Conversations import started");
       await loadDocuments();
@@ -188,13 +195,21 @@ export default function IntercomPage() {
       </form>
 
       {settings?.api_key && (
-        <div className="mt-6 border-t border-gray-50 dark:border-gray-800 pt-6">
+        <div className="flex flex-row items-center gap-2 mt-6 border-t border-gray-50 dark:border-gray-800 pt-6">
           <Button
             size="sm"
             onClick={kickOffImport}
           >
             Import past conversations
           </Button>
+          <div className="flex flex-row items-center gap-1">
+            <Checkbox
+              id="test-run"
+              checked={testRun}
+              onCheckedChange={(checked) => setTestRun(checked === true)}
+            />
+            <Label htmlFor="test-run">Test run</Label>
+          </div>
         </div>
       )}
 

@@ -117,7 +117,7 @@ export type Database = {
           metadata: Json
           name: string
           source: number
-          summary: string
+          summary: string | null
           updated_at: string
         }
         Insert: {
@@ -130,7 +130,7 @@ export type Database = {
           metadata?: Json
           name: string
           source: number
-          summary: string
+          summary?: string | null
           updated_at?: string
         }
         Update: {
@@ -143,7 +143,7 @@ export type Database = {
           metadata?: Json
           name?: string
           source?: number
-          summary?: string
+          summary?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -159,6 +159,36 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documents_tags: {
+        Row: {
+          document_id: number
+          tag_id: number
+        }
+        Insert: {
+          document_id: number
+          tag_id: number
+        }
+        Update: {
+          document_id?: number
+          tag_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_tags_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "tags"
             referencedColumns: ["id"]
           },
         ]
@@ -279,8 +309,43 @@ export type Database = {
           {
             foreignKeyName: "intercom_settings_created_by_fkey"
             columns: ["created_by"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tags: {
+        Row: {
+          app_id: string
+          created_at: string
+          id: number
+          name: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          app_id: string
+          created_at?: string
+          id?: never
+          name: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          app_id?: string
+          created_at?: string
+          id?: never
+          name?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tags_app_id_fkey"
+            columns: ["app_id"]
+            isOneToOne: false
+            referencedRelation: "apps"
             referencedColumns: ["id"]
           },
         ]
@@ -369,10 +434,6 @@ export type Database = {
           id: number
           updated_at: string
         }[]
-      }
-      supabase_url: {
-        Args: Record<PropertyKey, never>
-        Returns: string
       }
     }
     Enums: {
@@ -480,3 +541,4 @@ export type CompositeTypes<
   : PublicCompositeTypeNameOrOptions extends keyof PublicSchema["CompositeTypes"]
     ? PublicSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
+
