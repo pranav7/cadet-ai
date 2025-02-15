@@ -43,7 +43,7 @@ export default function IntercomPage() {
   const loadSettings = useCallback(async () => {
     if (!user) {
       console.log("no user");
-      redirect("/");
+      return;
     }
 
     const { data, error } = await supabase
