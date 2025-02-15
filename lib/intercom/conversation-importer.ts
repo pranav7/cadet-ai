@@ -121,6 +121,8 @@ export default class ConversationImporter {
             `[${conversation.id}] Failed to insert conversation:`,
             insertError
           );
+
+          throw insertError;
         }
 
         try {
