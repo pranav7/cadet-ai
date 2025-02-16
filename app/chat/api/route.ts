@@ -1,59 +1,27 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from "@/utils/supabase/server";
 import { codeBlock } from "common-tags";
-import { createOpenAI } from "ai-sdk-openai";
+import { createOpenAI } from "@ai-sdk/openai";
 import { streamText } from "ai";
-import { corsHeaders } from "../_lib/cors.ts";
+import { NextResponse } from "next/server";
 
 const openai = createOpenAI({
-  apiKey: Deno.env.get("OPENAI_API_KEY"),
+  apiKey: process.env.OPENAI_API_KEY,
   compatibility: "strict",
 });
 
-const supabaseUrl = Deno.env.get("SUPABASE_URL");
-const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+export async function POST(req: Request) {
+  const supabase = await createClient();
+  const { data: currentUser } = await supabase.rpc('get_current_user');
+  const { data: app } = await supabase.rpc('get_current_app');
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    return new Response(
-      JSON.stringify({
-        error: "Missing environment variables.",
-      }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      },
+  if (!currentUser || !app) {
+    return NextResponse.json(
+      { error: "User or app not found" },
+      { status: 401 },
     );
   }
-
-  const authorization = req.headers.get("Authorization");
-
-  if (!authorization) {
-    return new Response(
-      JSON.stringify({ error: `No authorization header passed` }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      },
-    );
-  }
-
-  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-    global: {
-      headers: {
-        authorization,
-      },
-    },
-    auth: {
-      persistSession: false,
-    },
-  });
 
   const { messages, embedding } = await req.json();
-
   const { data: documents, error: matchError } = await supabase
     .rpc("match_document_sections", {
       embedding,
@@ -65,10 +33,10 @@ Deno.serve(async (req) => {
   if (matchError) {
     console.log("matchError", matchError);
 
-    return new Response(
-      JSON.stringify({
+    return NextResponse.json(
+      {
         error: "There was an error reading your documents, please try again.",
-      }),
+      },
       {
         status: 500,
         headers: { "Content-Type": "application/json" },
@@ -106,11 +74,5 @@ Deno.serve(async (req) => {
     messages: messages,
   });
 
-  const streamResponse = await stream.toDataStreamResponse();
-  return new Response(streamResponse.body, {
-    headers: {
-      ...corsHeaders,
-      ...streamResponse.headers,
-    },
-  });
-});
+  return stream.toDataStreamResponse();
+}

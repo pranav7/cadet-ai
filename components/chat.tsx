@@ -14,7 +14,7 @@ export function Chat() {
   const supabase = createClient();
   const { messages, input, handleInputChange, handleSubmit, isLoading: isLoadingChat } =
     useChat({
-      api: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/chat`,
+      api: "/chat/api",
     });
   const generateEmbedding = usePipeline(
     "feature-extraction",

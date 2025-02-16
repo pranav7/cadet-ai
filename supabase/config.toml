@@ -259,11 +259,6 @@ enabled = true
 import_map = "./functions/deno.json"
 entrypoint = "./functions/embed/index.ts"
 
-[functions.chat]
-enabled = true
-import_map = "./functions/deno.json"
-entrypoint = "./functions/chat/index.ts"
-
 [functions.ensure-embed]
 enabled = true
 import_map = "./functions/deno.json"

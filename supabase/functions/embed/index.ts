@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { corsHeaders } from "../_lib/cors.ts";
 
+// @ts-ignore Supabase is added in production
 const model = new Supabase.ai.Session("gte-small");
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
