@@ -9,7 +9,7 @@ export const createSummary = async (
 ) => {
   console.log(`[Create Summary] creating summary for document ${document.id}`);
   const systemPrompt = codeBlock`
-    Write a concise summary of the following text:
+    Write a concise summary of the text below. Keep the language simple, and casual and avoid using complex sentences.
 
     ${document.content}
   `;
