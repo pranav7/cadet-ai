@@ -43,6 +43,7 @@ export const identifyTags = async (
     and they best describe what the document is about.
 
     The existing tags are what you would have suggested for other similar documents in the past.
+    If for example the document is about a customer request a feature, try your best to identify the name of the feature as a tag.
 
     Some examples of tags are:
     - "Feature request"
