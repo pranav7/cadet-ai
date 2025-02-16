@@ -53,7 +53,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     const { id, [contentColumn]: content } = row;
 
     if (!content) {
-      console.error(`No content available in column '${contentColumn}'`);
+      console.error(`[Embed] No content available in column '${contentColumn}'`);
       continue;
     }
 
@@ -73,12 +73,12 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     if (error) {
       console.error(
-        `Failed to save embedding on '${table}' table with id ${id}`,
+        `[Embed] Failed to save embedding on '${table}' table with id ${id}`,
       );
     }
 
     console.log(
-      `Generated embedding ${
+      `[Embed] Generated embedding ${
         JSON.stringify({
           table,
           id,

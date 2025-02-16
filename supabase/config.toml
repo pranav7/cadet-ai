@@ -264,6 +264,11 @@ enabled = true
 import_map = "./functions/deno.json"
 entrypoint = "./functions/chat/index.ts"
 
+[functions.ensure-embed]
+enabled = true
+import_map = "./functions/deno.json"
+entrypoint = "./functions/ensure-embed/index.ts"
+
 # Use these configurations to customize your Edge Function.
 # [functions.MY_FUNCTION_NAME]
 # enabled = true

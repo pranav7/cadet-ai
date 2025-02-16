@@ -17,15 +17,24 @@ interface IntercomSettings {
 }
 
 export default function IntercomPage() {
+  const supabase = createClient();
   const [settings, setSettings] = useState<IntercomSettings | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [documents, setDocuments] = useState<Tables<'documents'>[]>([]);
   const [documentCount, setDocumentCount] = useState<number | null>(null);
+  const [countNoEmbed, setCountNoEmbed] = useState<number | null>(null);
   const [user, setUser] = useState<Tables<'users'> | null>(null);
   const [app, setApp] = useState<Tables<'apps'> | null>(null);
   const [testRun, setTestRun] = useState(false);
-  const supabase = createClient();
+
+  const loadCountNoEmbed = useCallback(async () => {
+    const { count } = await supabase
+      .from('document_chunks')
+      .select('id', { count: 'exact', head: true })
+      .is('embedding', null);
+    setCountNoEmbed(count);
+  }, [supabase]);
 
   const loadSettings = useCallback(async () => {
     if (!user || !app) {
@@ -93,6 +102,15 @@ export default function IntercomPage() {
     }
   }
 
+  const ensureEmbed = async () => {
+    try {
+      await supabase.functions.invoke('ensure-embed');
+      toast.success("Embeddings generated");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to generate embeddings");
+    }
+  }
+
   const countDocuments = useCallback(async () => {
     const { count } = await supabase
       .from('documents')
@@ -117,8 +135,9 @@ export default function IntercomPage() {
     if (user) {
       countDocuments().then(setDocumentCount);
       loadSettings();
+      loadCountNoEmbed();
     }
-  }, [countDocuments, loadSettings, user]);
+  }, [countDocuments, loadSettings, user, loadCountNoEmbed]);
 
   if (!user || !app) {
     return <div className="p-4">Loading...</div>;
@@ -157,20 +176,31 @@ export default function IntercomPage() {
       </form>
 
       {settings?.api_key && (
-        <div className="flex flex-row items-center gap-2 mt-6 border-t border-gray-50 dark:border-gray-800 pt-6">
-          <Button
-            size="sm"
-            onClick={kickOffImport}
-          >
-            Import past conversations
-          </Button>
-          <div className="flex flex-row items-center gap-1">
-            <Checkbox
-              id="test-run"
-              checked={testRun}
-              onCheckedChange={(checked) => setTestRun(checked === true)}
-            />
-            <Label htmlFor="test-run">Test run</Label>
+        <div className="flex flex-col gap-2 mt-6 border-t border-gray-50 dark:border-gray-800 pt-6">
+          <div className="flex flex-row items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={kickOffImport}
+            >
+              Import past conversations
+            </Button>
+            <div className="flex flex-row items-center gap-1">
+              <Checkbox
+                id="test-run"
+                checked={testRun}
+                onCheckedChange={(checked) => setTestRun(checked === true)}
+              />
+              <Label htmlFor="test-run" className="text-xs">Test run</Label>
+            </div>
+          </div>
+          <div className="flex flex-row items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={ensureEmbed}>
+              Ensure embeddings
+            </Button>
+            <span className="text-xs bg-gray-100 dark:bg-gray-900 dark:text-gray-100 text-gray-800 px-2 py-1 rounded-md">
+              {countNoEmbed ? `${countNoEmbed} remaining` : 'all good'}
+            </span>
           </div>
         </div>
       )}
