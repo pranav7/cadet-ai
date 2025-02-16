@@ -104,6 +104,13 @@ export type Database = {
             referencedRelation: "documents"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "document_chunks_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents_with_tags"
+            referencedColumns: ["id"]
+          },
         ]
       }
       documents: {
@@ -116,6 +123,7 @@ export type Database = {
           id: number
           metadata: Json
           name: string
+          processed: boolean | null
           source: number
           summary: string | null
           updated_at: string
@@ -129,6 +137,7 @@ export type Database = {
           id?: never
           metadata?: Json
           name: string
+          processed?: boolean | null
           source: number
           summary?: string | null
           updated_at?: string
@@ -142,6 +151,7 @@ export type Database = {
           id?: never
           metadata?: Json
           name?: string
+          processed?: boolean | null
           source?: number
           summary?: string | null
           updated_at?: string
@@ -185,6 +195,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "documents_tags_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents_with_tags"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "documents_tags_tag_id_fkey"
             columns: ["tag_id"]
             isOneToOne: false
@@ -221,6 +238,13 @@ export type Database = {
             columns: ["document_id"]
             isOneToOne: false
             referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "end_user_documents_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents_with_tags"
             referencedColumns: ["id"]
           },
           {
@@ -393,7 +417,39 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      documents_with_tags: {
+        Row: {
+          app_id: string | null
+          content: string | null
+          created_at: string | null
+          created_by: string | null
+          external_id: string | null
+          id: number | null
+          metadata: Json | null
+          name: string | null
+          processed: boolean | null
+          source: number | null
+          summary: string | null
+          tags: string[] | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_app_id_fkey"
+            columns: ["app_id"]
+            isOneToOne: false
+            referencedRelation: "apps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       get_current_app: {
@@ -434,6 +490,10 @@ export type Database = {
           id: number
           updated_at: string
         }[]
+      }
+      supabase_url: {
+        Args: Record<PropertyKey, never>
+        Returns: string
       }
     }
     Enums: {

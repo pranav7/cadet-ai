@@ -5,23 +5,11 @@ import { useCallback, useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Sources } from "@/constants/sources";
-import ReactMarkdown from 'react-markdown';
 import { toast } from "sonner"
 import { Tables } from "@/types/database";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-
-interface Document {
-  id: number;
-  name: string;
-  content: string;
-  source: number;
-  metadata: Record<string, any>;
-  external_id: string;
-  created_by: string;
-  created_at: string;
-  updated_at: string;
-}
+import { RefreshCcw } from "lucide-react";
 
 interface IntercomSettings {
   enabled: boolean;
@@ -32,7 +20,7 @@ export default function IntercomPage() {
   const [settings, setSettings] = useState<IntercomSettings | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [documents, setDocuments] = useState<Document[]>([]);
+  const [documents, setDocuments] = useState<Tables<'documents'>[]>([]);
   const [documentCount, setDocumentCount] = useState<number | null>(null);
   const [user, setUser] = useState<Tables<'users'> | null>(null);
   const [app, setApp] = useState<Tables<'apps'> | null>(null);
@@ -69,7 +57,6 @@ export default function IntercomPage() {
       setSaving(false);
       return;
     }
-    console.log("creating settings for user, app", user, app);
 
     const formData = new FormData(form);
     const api_key = formData.get('api_key') as string;
@@ -100,7 +87,7 @@ export default function IntercomPage() {
         }),
       });
       toast.success("Conversations import started");
-      await loadDocuments();
+      countDocuments().then(setDocumentCount);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to import conversations");
     }
@@ -114,55 +101,31 @@ export default function IntercomPage() {
     return count;
   }, [supabase]);
 
-  const loadDocuments = useCallback(async () => {
-    const { data, error } = await supabase
-      .from('documents')
-      .select('*')
-      .eq('app_id', app?.id || '')
-      .eq('source', Sources.Intercom)
-      .limit(50);
-
-    if (error) {
-      setError(error.message);
-    } else {
-      setDocuments(data || []);
-    }
-  }, [supabase, user]);
-
   useEffect(() => {
     const getUser = async () => {
       const { data: currentUser } = await supabase.rpc('get_current_user');
       const { data: currentApp } = await supabase.rpc('get_current_app');
+
       setUser(currentUser);
       setApp(currentApp);
     }
+
     getUser();
   }, [supabase]);
 
   useEffect(() => {
     if (user) {
-      loadDocuments();
-    }
-  }, [loadDocuments, user]);
-
-  useEffect(() => {
-    if (user) {
       countDocuments().then(setDocumentCount);
-    }
-  }, [countDocuments, user]);
-
-  useEffect(() => {
-    if (user) {
       loadSettings();
     }
-  }, [loadSettings, user]);
+  }, [countDocuments, loadSettings, user]);
 
   if (!user || !app) {
     return <div className="p-4">Loading...</div>;
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-2 border border-gray-50 dark:border-gray-800 rounded-md">
+    <div className="max-w-3xl mx-auto">
       <h3 className="text-2xl font-bold mb-6">Intercom Settings</h3>
 
       {error && (
@@ -213,25 +176,13 @@ export default function IntercomPage() {
       )}
 
       {documents.length > 0 && (
-        <div className="mt-6 border-t border-gray-50 dark:border-gray-800 pt-6">
-          <div className="flex flex-row justify-between items-center mb-4">
-            <h2 className="text-md font-bold">Conversations</h2>
-            <span className="text-xs bg-gray-100 dark:bg-gray-900 dark:text-gray-100 text-gray-800 px-2 py-1 rounded-md">
-              {documentCount ? `${documentCount} conversations imported` : '...'}
-            </span>
-          </div>
-          <ul className="space-y-4">
-            {documents.map((document: Document) => (
-              <li key={document.id} className="bg-gray-100 dark:bg-gray-900 p-4 rounded-md shadow-sm">
-                <div className="text-sm font-medium mb-2 border-b border-gray-50 dark:border-gray-800 pb-2">{document.name}</div>
-                <div className="text-sm overflow-auto max-h-[400px]">
-                  <ReactMarkdown>
-                    {document.content}
-                  </ReactMarkdown>
-                </div>
-              </li>
-            ))}
-          </ul>
+        <div className="flex flex-row items-center gap-1 mt-6">
+          <span className="text-xs bg-gray-100 dark:bg-gray-900 dark:text-gray-100 text-gray-800 px-2 py-1 rounded-md">
+            {documentCount ? `${documentCount} conversations imported` : '...'}
+          </span>
+          <Button variant="ghost" size="sm" onClick={() => countDocuments().then(setDocumentCount)}>
+            <RefreshCcw className="w-4 h-4" />
+          </Button>
         </div>
       )}
     </div>
