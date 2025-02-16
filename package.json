@@ -14,6 +14,7 @@
     "@radix-ui/react-label": "^2.1.2",
     "@radix-ui/react-slot": "^1.1.2",
     "@radix-ui/react-toast": "^1.2.6",
+    "@radix-ui/react-tooltip": "^1.1.8",
     "@supabase/ssr": "latest",
     "@supabase/supabase-js": "latest",
     "@xenova/transformers": "^2.17.2",
@@ -31,6 +32,7 @@
     "react-dom": "19.0.0",
     "react-markdown": "^9.0.3",
     "sonner": "^1.7.4",
+    "svgo": "^3.3.2",
     "turndown": "^7.2.0"
   },
   "devDependencies": {

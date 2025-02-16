@@ -8,6 +8,11 @@ import ReactMarkdown from "react-markdown";
 import { ChevronsUpDown } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { useEffect, useState } from "react";
+import { SourceToIcon, SourceToName } from "@/constants/sources";
+import Image from "next/image";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip } from "@/components/ui/tooltip";
 
 export default function Document({ document }: { document: Tables<'documents_with_tags'> }) {
   const supabase = createClient();
@@ -44,7 +49,25 @@ export default function Document({ document }: { document: Tables<'documents_wit
 
   return (
     <Card className="p-4">
-      <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+      <div className="flex flex-row text-xs text-gray-500 dark:text-gray-400 mb-2 gap-2">
+        {document.source && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger>
+                <Image
+                  src={SourceToIcon[document.source]}
+                  alt={SourceToName[document.source]}
+                  width={16}
+                  height={16}
+                  className="dark:invert"
+                />
+              </TooltipTrigger>
+              <TooltipContent>
+                {SourceToName[document.source]}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
         {format(new Date(document.created_at || ''), 'd MMM, yyyy h:mm a')}
       </div>
       <div className="flex flex-col gap-2 text-sm overflow-auto max-h-[400px]">
