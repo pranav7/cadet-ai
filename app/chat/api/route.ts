@@ -40,11 +40,15 @@ export async function POST(req: Request) {
           createdAfterDate: createdAfterDate ? new Date(createdAfterDate) : undefined,
         });
 
-        return await searchDocuments({
+        const results = await searchDocuments({
           searchQuery,
           matchThreshold,
           createdAfterDate: createdAfterDate ? new Date(createdAfterDate) : undefined,
         });
+
+        console.log("Search documents tool results", results.injectableDocuments);
+
+        return results.injectableDocuments;
       },
     }),
     execute_sql: tool({
