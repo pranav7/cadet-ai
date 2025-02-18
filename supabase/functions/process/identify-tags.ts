@@ -51,8 +51,9 @@ export const identifyTags = async ({
     You are a helpful assistant that identifies the most relevant tags for a given document.
     You will be given a quick summary of the document and the content of the document.
     The tags can be sentiment based, feature requests, bug reports, etc.
-    Make sure to tag whether the user is requesting a feature, reporting a bug, or asking a question.
-    Make sure to include the sentiment of the document in the tags.
+    Make sure to tag whether the user is requesting a feature, reporting a bug, or asking a question. E.g. "Feature request", "Bug report", "Question", etc.
+    When tagging a feature request, make sure to include the name of the feature as a separate tag. E.g. "Feature request", "Dark mode"
+    Make sure to include the sentiment of the document in the tags. E.g. "Happy", "Sad", "Frustrated", etc.
 
     Identify the most relevant tags for the document from the following list of tags:
 
