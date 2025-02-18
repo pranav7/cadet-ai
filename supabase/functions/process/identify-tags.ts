@@ -5,6 +5,8 @@ import { codeBlock } from "common-tags";
 import { z } from "zod";
 import { zodResponseFormat } from "openai/helpers/zod";
 
+const model = Deno.env.get("DEFAULT_MODEL") || "gpt-4o";
+
 const TagResponseSchema = z.object({
   existingTags: z.array(z.string()),
   newTags: z.array(z.string()),
@@ -93,7 +95,7 @@ export const identifyTags = async ({
   `;
 
   const response = await openai.beta.chat.completions.parse({
-    model: "gpt-4o",
+    model: model,
     messages: [
       { role: "system", content: systemPrompt },
     ],

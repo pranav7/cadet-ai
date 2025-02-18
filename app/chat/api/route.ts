@@ -8,6 +8,8 @@ import searchDocuments from "@/lib/chat/tools/search-documents";
 import { createClient } from "@/utils/supabase/server";
 import { databaseSchemaForLLM } from "@/constants/database-schema";
 
+const model = process.env.CHAT_MODEL || process.env.DEFAULT_MODEL || "gpt-4o";
+
 const openai = createOpenAI({
   apiKey: process.env.OPENAI_API_KEY,
   compatibility: "strict",
@@ -83,7 +85,7 @@ export async function POST(req: Request) {
   `;
 
   const stream = await streamText({
-    model: openai("gpt-4o"),
+    model: openai(model),
     system: systemPrompt,
     messages: messages,
     tools,

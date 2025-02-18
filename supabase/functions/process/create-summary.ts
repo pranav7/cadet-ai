@@ -4,6 +4,8 @@ import { codeBlock } from "common-tags";
 import { openai } from "../_lib/openai.ts";
 import { SourceNames } from "../_lib/constants.ts";
 
+const model = Deno.env.get("DEFAULT_MODEL") || "gpt-4o-mini";
+
 export const createSummary = async ({
   supabase,
   document,
@@ -48,7 +50,7 @@ export const createSummary = async ({
         content: systemPrompt,
       },
     ],
-    model: "gpt-4o-mini",
+    model: model,
   });
 
   const summary = chatCompletion.choices[0].message.content;
