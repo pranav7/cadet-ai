@@ -1,7 +1,6 @@
 "use client";
 
 import { createClient } from "@/utils/supabase/client";
-import { usePipeline } from "@/lib/hooks/use-pipeline";
 import { useChat } from "@ai-sdk/react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -16,26 +15,9 @@ export function Chat() {
     useChat({
       api: "/chat/api",
     });
-  const generateEmbedding = usePipeline(
-    "feature-extraction",
-    "Supabase/gte-small",
-  );
-
-  const isReady = !!generateEmbedding;
 
   const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!generateEmbedding) {
-      console.error("Unable to generate embeddings");
-      throw new Error("Unable to generate embeddings");
-    }
-
-    const output = await generateEmbedding(input, {
-      pooling: "mean",
-      normalize: true,
-    });
-
-    const embedding = JSON.stringify(Array.from(output.data));
 
     const {
       data: { session },
@@ -50,22 +32,8 @@ export function Chat() {
       headers: {
         authorization: `Bearer ${session.access_token}`,
       },
-        body: {
-          embedding,
-        },
     });
   };
-
-  if (!isReady) {
-    return (
-      <div className="border rounded-md p-4 bg-background w-full">
-        <div className="flex flex-row gap-2 w-full">
-          <div className="animate-pulse h-4 w-full bg-gray-200 rounded-full"></div>
-          <div className="animate-pulse h-4 w-4 bg-gray-200 rounded-full"></div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <Card className="w-full">
@@ -109,7 +77,7 @@ export function Chat() {
               onChange={handleInputChange}
               className="bg-white dark:bg-gray-900 w-full"
             />
-            <Button disabled={!isReady} type="submit">
+            <Button type="submit">
               Send
             </Button>
           </form>
