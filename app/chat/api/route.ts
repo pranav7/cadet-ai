@@ -7,6 +7,7 @@ import { z } from "zod";
 import searchDocuments from "@/lib/chat/tools/search-documents";
 import { createClient } from "@/utils/supabase/server";
 import { databaseSchemaForLLM } from "@/constants/database-schema";
+import executeQuery from "@/lib/chat/tools/execute-query";
 
 const model = process.env.CHAT_MODEL || process.env.DEFAULT_MODEL || "gpt-4o";
 
@@ -48,8 +49,6 @@ export async function POST(req: Request) {
           createdAfterDate: createdAfterDate ? new Date(createdAfterDate) : undefined,
         });
 
-        console.log("Search documents tool results", results.injectableDocuments);
-
         return results.injectableDocuments;
       },
     }),
@@ -67,7 +66,6 @@ export async function POST(req: Request) {
         query: z.string(),
       }),
       execute: async ({ query }) => {
-        console.log("Executing SQL query:", query);
         return await executeQuery({ query });
       },
     }),
@@ -96,30 +94,4 @@ export async function POST(req: Request) {
   });
 
   return stream.toDataStreamResponse();
-}
-
-async function executeQuery({ query }: { query: string }) {
-  const supabase = await createClient();
-
-  try {
-    const { data, error } = await supabase.rpc('execute_sql_query', {
-      sql_query: query
-    });
-
-    if (error) {
-      console.error("Supabase RPC error:", error);
-      return { data: null, error: error.message };
-    }
-
-    return {
-      data: JSON.stringify(data) || null,
-      error: null
-    }
-  } catch (err) {
-    console.error("Unexpected error:", err);
-    return {
-      data: null,
-      error: "Failed to execute query"
-    };
-  }
 }
