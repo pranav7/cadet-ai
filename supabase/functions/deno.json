@@ -6,6 +6,8 @@
     "openai": "https://esm.sh/openai@4.83.0",
     "openai/": "https://esm.sh/openai@4.83.0/",
     "common-tags": "https://esm.sh/common-tags@1.8.2",
-    "zod": "npm:zod"
+    "zod": "npm:zod",
+    "ai": "https://esm.sh/ai@4.1.41",
+    "@ai-sdk/openai": "npm:@ai-sdk/openai"
   }
 }

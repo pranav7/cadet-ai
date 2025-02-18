@@ -1,8 +1,12 @@
-import { createClient } from "@/utils/supabase/server";
 import { codeBlock } from "common-tags";
 import { createOpenAI } from "@ai-sdk/openai";
-import { streamText } from "ai";
+import { streamText, tool } from "ai";
 import { NextResponse } from "next/server";
+import useCurrentSession from "@/lib/hooks/server/use-current-session";
+import { z } from "zod";
+import searchDocuments from "@/lib/chat/tools/search-documents";
+import { createClient } from "@/utils/supabase/server";
+import { databaseSchemaForLLM } from "@/constants/database-schema";
 
 const openai = createOpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -10,69 +14,107 @@ const openai = createOpenAI({
 });
 
 export async function POST(req: Request) {
-  const supabase = await createClient();
-  const { data: currentUser } = await supabase.rpc('get_current_user');
-  const { data: app } = await supabase.rpc('get_current_app');
+  const { currentUser, currentApp } = await useCurrentSession();
 
-  if (!currentUser || !app) {
+  if (!currentUser || !currentApp) {
     return NextResponse.json(
       { error: "User or app not found" },
       { status: 401 },
     );
   }
 
-  const { messages, embedding } = await req.json();
-  const { data: documents, error: matchError } = await supabase
-    .rpc("match_document_sections", {
-      embedding,
-      match_threshold: 0.8,
-    })
-    .select("content")
-    .limit(10);
+  const { messages } = await req.json();
 
-  if (matchError) {
-    console.log("matchError", matchError);
+  const tools = {
+    search_documents: tool({
+      description: "Search the database for the most relevant documents",
+      parameters: z.object({
+        searchQuery: z.string(),
+        matchThreshold: z.number().optional(),
+        createdAfterDate: z.string().optional(),
+      }),
+      execute: async ({ searchQuery, matchThreshold, createdAfterDate }) => {
+        console.log("Executing search_documents tool", {
+          searchQuery,
+          matchThreshold,
+          createdAfterDate: createdAfterDate ? new Date(createdAfterDate) : undefined,
+        });
 
-    return NextResponse.json(
-      {
-        error: "There was an error reading your documents, please try again.",
+        return await searchDocuments({
+          searchQuery,
+          matchThreshold,
+          createdAfterDate: createdAfterDate ? new Date(createdAfterDate) : undefined,
+        });
       },
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
+    }),
+    execute_sql: tool({
+      description: `
+        Execute a SQL query on the database.
+        This will call a rpc function that will execute the query and return the results.
+        Make sure to write the query in the correct syntax for the database.
+        Since the database is postgres, you can use the postgres syntax.
+        Don't put ; at the end of the query since it's being executed as a function.
+        Make sure to properly escape ' and " in the query.
+
+        If you encounter an error, try to fix it by yourself.
+      `,
+      parameters: z.object({
+        query: z.string(),
+      }),
+      execute: async ({ query }) => {
+        console.log("Executing SQL query:", query);
+        return await executeQuery({ query });
       },
-    );
-  }
-
-  console.log("documents", documents.map(({ content }) => content));
-
-  const injectedDocs = documents && documents.length > 0
-    ? documents.map(({ content }) => content).join("\n\n")
-    : "No documents found";
+    }),
+  };
 
   const systemPrompt = codeBlock`
-    You're an AI assistant who answers questions about documents.
-    You're a chat bot, so keep your replies succinct.
+    You run in a loop of Thought, Action, PAUSE, Observation.
+    At the end of the loop you output an Answer
+    Use Thought to describe your thoughts about the question you have been asked.
+    Use Action to run one of the actions available to you - then return PAUSE.
+    Observation will be the result of running those actions.
 
-    You're only allowed to use the documents below to answer the question.
-
-    If the question isn't related to these documents, say:
-    "Sorry, I couldn't find any information on that."
-
-    If the information isn't available in the below documents, say:
-    "Sorry, I couldn't find any information on that."
-
-    Do not go off topic.
-
-    Documents:
-    ${injectedDocs}
+    You can refer to the following schema to understand the database:
+    ${databaseSchemaForLLM}
   `;
 
   const stream = await streamText({
     model: openai("gpt-4o"),
     system: systemPrompt,
     messages: messages,
+    tools,
+    maxSteps: 5,
+    onError: (error) => {
+      console.error(error);
+    },
   });
 
   return stream.toDataStreamResponse();
+}
+
+async function executeQuery({ query }: { query: string }) {
+  const supabase = await createClient();
+
+  try {
+    const { data, error } = await supabase.rpc('execute_sql_query', {
+      sql_query: query
+    });
+
+    if (error) {
+      console.error("Supabase RPC error:", error);
+      return { data: null, error: error.message };
+    }
+
+    return {
+      data: JSON.stringify(data) || null,
+      error: null
+    }
+  } catch (err) {
+    console.error("Unexpected error:", err);
+    return {
+      data: null,
+      error: "Failed to execute query"
+    };
+  }
 }
