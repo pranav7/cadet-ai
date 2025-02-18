@@ -24,7 +24,7 @@ create table document_chunks (
   app_id uuid not null references apps (id),
   document_id bigint not null references documents (id) on delete cascade,
   content text not null,
-  embedding vector(384),
+  embedding vector(1536),
   created_at timestamp with time zone not null default now(),
   updated_at timestamp with time zone not null default now()
 );

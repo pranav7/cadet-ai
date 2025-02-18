@@ -13,21 +13,20 @@ export default async function searchDocuments({
 }) {
   const supabase = await createClient();
   const embedding = await _generateEmbedding(searchQuery);
+
   const dbQuery = supabase
-    .from('document_chunks')
-    .select('content')
-    .lt('embedding <=> ?', embedding)
-    .gt('embedding <=> ?', -matchThreshold)
-    .order('embedding <=> ?', { ascending: true });
+    .rpc('match_documents', {
+      query_embedding: embedding,
+      match_threshold: matchThreshold,
+      match_count: 10,
+      created_after_date: createdAfterDate?.toISOString() || null
+    });
 
-  if (createdAfterDate) {
-    dbQuery.gt('created_at', createdAfterDate.toISOString());
-  }
-
-  const { data: documents, error: matchError } = await dbQuery.limit(10);
+  const { data: documents, error: matchError } = await dbQuery;
 
   if (matchError) {
     console.log("matchError", matchError);
+
     return {
       error: "There was an error reading your documents, please try again.",
     };
@@ -35,7 +34,7 @@ export default async function searchDocuments({
 
   return {
     documents,
-    injectableDocuments: documents.map(({ content }) => content).join("\n\n"),
+    injectableDocuments: documents.map((doc: { content: string }) => doc.content).join("\n\n"),
   };
 }
 

@@ -1,8 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { corsHeaders } from "../_lib/cors.ts";
-
-// @ts-ignore Supabase is added in production
-const model = new Supabase.ai.Session("gte-small");
+import { embed } from 'ai';
+import { openai } from '@ai-sdk/openai';
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -58,17 +57,17 @@ Deno.serve(async (req: Request): Promise<Response> => {
       continue;
     }
 
-    const output = (await model.run(content, {
-      mean_pool: true,
-      normalize: true,
-    })) as number[];
+    const { embedding } = await embed({
+      model: openai.embedding('text-embedding-3-small'),
+      value: content,
+    });
 
-    const embedding = JSON.stringify(output);
+    console.log(embedding);
 
     const { error } = await supabase
       .from(table)
       .update({
-        [embeddingColumn]: embedding,
+        [embeddingColumn]: JSON.stringify(embedding),
       })
       .eq("id", id);
 
