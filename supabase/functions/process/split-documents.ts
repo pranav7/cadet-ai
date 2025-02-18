@@ -2,16 +2,21 @@ import { Tables } from "../_lib/database.types.ts";
 import { TextSplitter } from "../_lib/text-splitter.ts";
 import { SupabaseClient } from "@supabase/supabase-js";
 
-export const splitDocuments = async (
-  supabase: SupabaseClient,
-  document: Tables<"documents">,
-) => {
+export const splitDocuments = async ({
+  supabase,
+  document,
+  force,
+}: {
+  supabase: SupabaseClient;
+  document: Tables<"documents">;
+  force: boolean;
+}) => {
   const { data: existingDocumentChunks } = await supabase
     .from("document_chunks")
     .select()
     .eq("document_id", document.id);
 
-  if (existingDocumentChunks) {
+  if (existingDocumentChunks && !force) {
     console.log(`[Process] Document ${document.id} already has chunks`);
 
     return;

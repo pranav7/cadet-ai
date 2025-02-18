@@ -21,22 +21,23 @@ Deno.serve(async (req: Request): Promise<Response> => {
     );
   }
 
-  const { document_id } = await req.json();
+  const { document_id, forceIdentifyTags, forceCreateSummary, forceSplitDocuments } = await req.json();
 
-  const { data: document, error: selectError } = await supabase
+  const findDocumentQuery = supabase
     .from("documents")
     .select("*")
     .eq("id", Number(document_id))
-    .eq("processed", false)
-    .single();
 
-  if (selectError) {
-    console.error('[Process] Error selecting document:', selectError);
+  if (!forceIdentifyTags && !forceCreateSummary && !forceSplitDocuments) {
+    console.log(`[Process] Finding unprocessed document ${document_id}`);
+    findDocumentQuery.eq("processed", false);
   }
 
-  if (!document) {
-    const error = "Document not found or already processed";
-    console.error(`[Process] ${error}`);
+  const { data: document, error: selectError } = await findDocumentQuery.single();
+
+  if (!document || selectError) {
+    console.error(`[Process] ${selectError ? selectError.message : "Document not found or already processed"}`);
+
     return new Response(
       JSON.stringify({ error }),
       {
@@ -47,9 +48,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
   }
 
   try {
-    await splitDocuments(supabase, document);
-    await createSummary(supabase, document);
-    await identifyTags(supabase, document);
+    await splitDocuments({ supabase, document, force: forceSplitDocuments });
+    await createSummary({ supabase, document, force: forceCreateSummary });
+    await identifyTags({ supabase, document, force: forceIdentifyTags });
 
     const { error: updateError } = await supabase
       .from("documents")

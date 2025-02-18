@@ -4,16 +4,21 @@ import { codeBlock } from "common-tags";
 import { openai } from "../_lib/openai.ts";
 import { SourceNames } from "../_lib/constants.ts";
 
-export const createSummary = async (
-  supabase: SupabaseClient,
-  document: Tables<"documents">,
-) => {
+export const createSummary = async ({
+  supabase,
+  document,
+  force,
+}: {
+  supabase: SupabaseClient;
+  document: Tables<"documents">;
+  force: boolean;
+}) => {
   const { data: existingSummary } = await supabase
     .from("documents")
     .select("summary")
     .eq("id", document.id);
 
-  if (existingSummary) {
+  if (existingSummary && !force) {
     console.log(`[Create Summary] Document ${document.id} already has a summary`);
 
     return;

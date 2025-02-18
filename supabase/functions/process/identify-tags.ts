@@ -10,16 +10,21 @@ const TagResponseSchema = z.object({
   newTags: z.array(z.string()),
 });
 
-export const identifyTags = async (
-  supabase: SupabaseClient,
-  document: Tables<"documents">,
-) => {
+export const identifyTags = async ({
+  supabase,
+  document,
+  force,
+}: {
+  supabase: SupabaseClient;
+  document: Tables<"documents">;
+  force: boolean;
+}) => {
   const { data: initialTagCheck } = await supabase
     .from("documents_tags")
     .select("*")
     .eq("document_id", document.id);
 
-  if (initialTagCheck) {
+  if (initialTagCheck && !force) {
     console.log(`[Identify Tags] Document ${document.id} already has tags`);
     return;
   }

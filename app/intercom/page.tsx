@@ -21,12 +21,13 @@ export default function IntercomPage() {
   const [settings, setSettings] = useState<IntercomSettings | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [documents, setDocuments] = useState<Tables<'documents'>[]>([]);
-  const [documentCount, setDocumentCount] = useState<number | null>(null);
   const [countNoEmbed, setCountNoEmbed] = useState<number | null>(null);
   const [user, setUser] = useState<Tables<'users'> | null>(null);
   const [app, setApp] = useState<Tables<'apps'> | null>(null);
   const [testRun, setTestRun] = useState(false);
+  const [forceIdentifyTags, setForceIdentifyTags] = useState(false);
+  const [forceCreateSummary, setForceCreateSummary] = useState(false);
+  const [forceSplitDocuments, setForceSplitDocuments] = useState(false);
 
   const loadCountNoEmbed = useCallback(async () => {
     const { count } = await supabase
@@ -96,7 +97,6 @@ export default function IntercomPage() {
         }),
       });
       toast.success("Conversations import started");
-      countDocuments().then(setDocumentCount);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to import conversations");
     }
@@ -113,8 +113,14 @@ export default function IntercomPage() {
 
   const ensureDocumentProcessed = async () => {
     try {
-      await supabase.functions.invoke('ensure-document-processed');
-      toast.success("All documents processed");
+      await supabase.functions.invoke('ensure-document-processed', {
+        body: JSON.stringify({
+          forceIdentifyTags,
+          forceCreateSummary,
+          forceSplitDocuments,
+        }),
+      });
+      toast.success("Force processing started");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to ensure all documents are processed");
     }
@@ -142,11 +148,10 @@ export default function IntercomPage() {
 
   useEffect(() => {
     if (user) {
-      countDocuments().then(setDocumentCount);
       loadSettings();
       loadCountNoEmbed();
     }
-  }, [countDocuments, loadSettings, user, loadCountNoEmbed]);
+  }, [loadSettings, user, loadCountNoEmbed]);
 
   if (!user || !app) {
     return <div className="p-4">Loading...</div>;
@@ -211,21 +216,28 @@ export default function IntercomPage() {
               {countNoEmbed ? `${countNoEmbed} remaining` : 'all good'}
             </span>
           </div>
-          <div className="flex flex-row items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={ensureDocumentProcessed}>
-              Ensure all document processed
-            </Button>
+          <div className="flex flex-row items-center gap-3 border-t border-gray-50 dark:border-gray-800 pt-4">
+            <Checkbox
+              id="ensure-document-processed"
+              checked={forceIdentifyTags}
+              onCheckedChange={(checked) => setForceIdentifyTags(checked === true)}
+            />
+            <Label htmlFor="force-identify-tags" className="text-xs">Force identify tags</Label>
+            <Checkbox
+              id="force-create-summary"
+              checked={forceCreateSummary}
+              onCheckedChange={(checked) => setForceCreateSummary(checked === true)}
+            />
+            <Label htmlFor="force-create-summary" className="text-xs">Force create summary</Label>
+            <Checkbox
+              id="force-split-documents"
+              checked={forceSplitDocuments}
+              onCheckedChange={(checked) => setForceSplitDocuments(checked === true)}
+            />
+            <Label htmlFor="force-split-documents" className="text-xs">Force split documents</Label>
           </div>
-        </div>
-      )}
-
-      {documents.length > 0 && (
-        <div className="flex flex-row items-center gap-1 mt-6">
-          <span className="text-xs bg-gray-100 dark:bg-gray-900 dark:text-gray-100 text-gray-800 px-2 py-1 rounded-md">
-            {documentCount ? `${documentCount} conversations imported` : '...'}
-          </span>
-          <Button variant="ghost" size="sm" onClick={() => countDocuments().then(setDocumentCount)}>
-            <RefreshCcw className="w-4 h-4" />
+          <Button variant="outline" size="sm" onClick={ensureDocumentProcessed}>
+            Ensure all document processed
           </Button>
         </div>
       )}
