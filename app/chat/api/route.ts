@@ -6,6 +6,7 @@ import useCurrentSession from "@/lib/hooks/server/use-current-session";
 import { z } from "zod";
 import searchDocuments from "@/lib/chat/tools/search-documents";
 import { createClient } from "@/utils/supabase/server";
+import { databaseSchemaForLLM } from "@/constants/database-schema";
 
 const openai = createOpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -75,7 +76,7 @@ export async function POST(req: Request) {
     Observation will be the result of running those actions.
 
     You can refer to the following schema to understand the database:
-    ${process.env.DB_SCHEMA_FOR_LLM}
+    ${databaseSchemaForLLM}
   `;
 
   const stream = await streamText({
