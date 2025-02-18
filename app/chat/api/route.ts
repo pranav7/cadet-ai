@@ -50,9 +50,8 @@ export async function POST(req: Request) {
     execute_sql: tool({
       description: `
         Execute a SQL query on the database.
-        This will call a rpc function that will execute the query and return the results.
-        Make sure to write the query in the correct syntax for the database.
-        Since the database is postgres, you can use the postgres syntax.
+        This will call make an RPC that will execute the query and return the results.
+        Make sure to write the query in the correct syntax for the database. Use the postgres syntax.
         Don't put ; at the end of the query since it's being executed as a function.
         Make sure to properly escape ' and " in the query.
 

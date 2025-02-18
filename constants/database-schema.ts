@@ -44,6 +44,8 @@ When documents are created, they are tagged with one or more tags.
 These tags try to categorize the content of the document.
 For example, a document about a user requesting a new feature could be
 tagged with 'Feature Request', 'User Request' or 'Salesforce'
+When querying this table, prefer to use the slug instead of the name.
+For example, instead of using 'Feature Request', use 'feature-request'.
 CREATE TABLE public.tags (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   app_id uuid NOT NULL,
