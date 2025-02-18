@@ -111,6 +111,15 @@ export default function IntercomPage() {
     }
   }
 
+  const ensureDocumentProcessed = async () => {
+    try {
+      await supabase.functions.invoke('ensure-document-processed');
+      toast.success("All documents processed");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to ensure all documents are processed");
+    }
+  }
+
   const countDocuments = useCallback(async () => {
     const { count } = await supabase
       .from('documents')
@@ -149,7 +158,7 @@ export default function IntercomPage() {
 
       {error && (
         <div className="bg-red-50 text-red-600 p-4 rounded-md mb-4">
-          {error}
+          {String(error)}
         </div>
       )}
 
@@ -201,6 +210,11 @@ export default function IntercomPage() {
             <span className="text-xs bg-gray-100 dark:bg-gray-900 dark:text-gray-100 text-gray-800 px-2 py-1 rounded-md">
               {countNoEmbed ? `${countNoEmbed} remaining` : 'all good'}
             </span>
+          </div>
+          <div className="flex flex-row items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={ensureDocumentProcessed}>
+              Ensure all document processed
+            </Button>
           </div>
         </div>
       )}
