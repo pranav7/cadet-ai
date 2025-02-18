@@ -45,7 +45,11 @@ export const identifyTags = async (
   const systemPrompt = codeBlock`
     You are a helpful assistant that identifies the most relevant tags for a given document.
     You will be given a quick summary of the document and the content of the document.
-    Your goal is to identify the most relevant tags for the document from the following list of tags:
+    The tags can be sentiment based, feature requests, bug reports, etc.
+    Make sure to tag whether the user is requesting a feature, reporting a bug, or asking a question.
+    Make sure to include the sentiment of the document in the tags.
+
+    Identify the most relevant tags for the document from the following list of tags:
 
     Existing tags available:
     ${availableTags.join(", ")}
@@ -83,7 +87,7 @@ export const identifyTags = async (
   `;
 
   const response = await openai.beta.chat.completions.parse({
-    model: "gpt-4o-2024-08-06",
+    model: "gpt-4o",
     messages: [
       { role: "system", content: systemPrompt },
     ],
