@@ -6,10 +6,21 @@ export const splitDocuments = async (
   supabase: SupabaseClient,
   document: Tables<"documents">,
 ) => {
+  const { data: existingDocumentChunks } = await supabase
+    .from("document_chunks")
+    .select()
+    .eq("document_id", document.id);
+
+  if (existingDocumentChunks) {
+    console.log(`[Process] Document ${document.id} already has chunks`);
+
+    return;
+  }
+
   const splitter = new TextSplitter();
   const chunks = await splitter.split(document.content);
 
-  const { data: document_chunks, error } = await supabase
+  const { data: documentChunks, error: insertError } = await supabase
     .from("document_chunks")
     .insert(chunks.map((chunk) => ({
       document_id: document.id,
@@ -19,14 +30,14 @@ export const splitDocuments = async (
     .select();
 
   console.log(
-    `[Process] Saved ${document_chunks?.length} chunks for document ${document.id}`,
+    `[Process] Saved ${documentChunks?.length} chunks for document ${document.id}`,
   );
 
-  if (error) {
-    console.error(error);
+  if (insertError) {
+    console.error(insertError);
 
     throw new Error("Failed to split documents");
   }
 
-  return document_chunks;
+  return documentChunks;
 };

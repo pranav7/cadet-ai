@@ -14,20 +14,33 @@ export const identifyTags = async (
   supabase: SupabaseClient,
   document: Tables<"documents">,
 ) => {
-  console.log(`[Identify Tags] Document: ${JSON.stringify(document)}`);
+  const { data: initialTagCheck } = await supabase
+    .from("documents_tags")
+    .select("*")
+    .eq("document_id", document.id);
+
+  if (initialTagCheck) {
+    console.log(`[Identify Tags] Document ${document.id} already has tags`);
+    return;
+  }
+
   const appId = document.app_id;
-  const { data: availableTagsData, error: availableTagsError } = await supabase
+  const { data: availableTagsData } = await supabase
     .from("tags")
     .select("*")
     .eq("app_id", appId);
 
-  if (availableTagsError) {
-    console.error(availableTagsError);
+  if (!availableTagsData) {
+    console.error(`[Identify Tags] No available tags found for document ${document.id}`);
+
     return;
   }
 
   const availableTags = availableTagsData.map((tag) => tag.name);
   console.log(`[Identify Tags] Available tags: ${availableTags.join(", ")}`);
+
+  const documentSummary = document.summary || '';
+  const documentContent = document.content || '';
 
   const systemPrompt = codeBlock`
     You are a helpful assistant that identifies the most relevant tags for a given document.
@@ -63,10 +76,10 @@ export const identifyTags = async (
     If you are suggesting new tags, return the new tags in the "newTags" array.
 
     A quick summary of the document is:
-    ${document.summary}
+    ${String(documentSummary)}
 
     The content of the document is:
-    ${document.content}
+    ${String(documentContent)}
   `;
 
   const response = await openai.beta.chat.completions.parse({
@@ -86,12 +99,12 @@ export const identifyTags = async (
     return;
   }
 
-  const newTagsData = await createTags(supabase, appId, newTags);
-  const existingTagsData = await findTags(supabase, appId, existingTags);
+  const createdTags = await createTags(supabase, appId, newTags);
+  const foundTags = await findTags(supabase, appId, existingTags);
 
   const tagsToApply: Tables<"tags">[] = [];
-  if (existingTagsData) tagsToApply.push(...existingTagsData);
-  if (newTagsData) tagsToApply.push(...newTagsData);
+  if (foundTags) tagsToApply.push(...foundTags);
+  if (createdTags) tagsToApply.push(...createdTags);
 
   await applyTags(supabase, document, tagsToApply);
 };
