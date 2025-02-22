@@ -13,6 +13,9 @@ node_modules
 # testing
 /coverage
 
+src/.next
+src/.vercel
+
 # next.js
 /.next/
 /out/
@@ -45,3 +48,8 @@ next-env.d.ts
 .turbo
 
 .env.local
+
+# website
+website/node_modules
+website/.next
+website/out
