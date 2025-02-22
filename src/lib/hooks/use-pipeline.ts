@@ -11,7 +11,7 @@ import {
   InitEventData,
   OutgoingEventData,
   RunEventData,
-} from "../workers/pipeline";
+} from "@/lib/workers/pipeline";
 
 export type PipeParameters = Parameters<Pipeline["_call"]>;
 export type PipeReturnType = Awaited<ReturnType<Pipeline["_call"]>>;

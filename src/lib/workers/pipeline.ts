@@ -1,5 +1,5 @@
 import { Pipeline, pipeline } from "@xenova/transformers";
-import { PipeParameters, PipeReturnType } from "../hooks/use-pipeline";
+import { PipeParameters, PipeReturnType } from "@/lib/hooks/use-pipeline";
 
 export type InitEventData = {
   type: "init";
