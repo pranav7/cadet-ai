@@ -19,6 +19,8 @@ src/.vercel
 # next.js
 /.next/
 /out/
+website/.next/
+website/out/
 
 # production
 /build
@@ -53,3 +55,4 @@ next-env.d.ts
 website/node_modules
 website/.next
 website/out
+.aider*
