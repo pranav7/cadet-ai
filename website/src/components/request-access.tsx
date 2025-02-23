@@ -45,13 +45,13 @@ export const RequestAccess = () => {
       <Dialog open={isOpen} onClose={() => setIsOpen(false)} className="relative z-50">
         <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
         <div className="fixed inset-0 flex w-screen items-center justify-center p-4">
-          <DialogPanel className="w-full max-w-lg space-y-4 rounded-lg border bg-white p-8">
+          <DialogPanel className="w-full max-w-lg space-y-1 rounded-lg border bg-white p-8">
             <DialogTitle className="text-xl font-bold">Request Early Access</DialogTitle>
             <Description className="text-gray-600">
               Join the waitlist to get early access to cadetAI.
             </Description>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4 mt-4">
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                   Email address
@@ -62,7 +62,7 @@ export const RequestAccess = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email"
-                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-black-500 focus:outline-none focus:ring-1 focus:ring-black-500"
                   required
                 />
               </div>
