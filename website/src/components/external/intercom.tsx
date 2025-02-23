@@ -53,8 +53,8 @@ export default function Intercom({ user }: { user?: IntercomUser }) {
           function i(this: IntercomFunction) {
             i.c(arguments);
           }
-          i.q = [];
-          i.c = function(args) {
+          i.q = [] as IArguments[];
+          i.c = function(args: IArguments) {
             i.q.push(args);
           };
           return i;
