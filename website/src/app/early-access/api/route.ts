@@ -25,22 +25,17 @@ export async function POST(req: Request) {
         database_id: DATABASE_ID,
       },
       properties: {
-        Email: {
-          type: 'email',
-          email: email
+        title: {
+          type: 'title',
+          title: [
+            {
+              type: 'text',
+              text: {
+                content: email
+              }
+            }
+          ]
         },
-        Status: {
-          type: 'select',
-          select: {
-            name: 'New'
-          }
-        },
-        'Signed Up': {
-          type: 'date',
-          date: {
-            start: new Date().toISOString()
-          }
-        }
       }
     })
 
