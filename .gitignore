@@ -56,3 +56,8 @@ website/node_modules
 website/.next
 website/out
 .aider*
+
+# app
+app/node_modules
+app/.next
+app/out
