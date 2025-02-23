@@ -5,7 +5,7 @@ import { Toaster } from 'react-hot-toast'
 export const metadata: Metadata = {
   title: {
     template: '%s - cadetAI',
-    default: 'cadetAI',
+    default: 'cadetAI — AI-powered customer insights',
   },
 }
 
