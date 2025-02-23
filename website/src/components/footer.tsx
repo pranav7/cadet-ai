@@ -1,7 +1,7 @@
-import { Button } from './button'
-import { Container } from './container'
-import { Link } from './link'
-import { Subheading } from './text'
+import { Button } from "@/components/button";
+import { Container } from "@/components/container";
+import { Link } from "@/components/link";
+import { Subheading } from "@/components/text";
 
 function CallToAction() {
   return (
