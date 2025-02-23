@@ -1,7 +1,8 @@
 import '@/styles/tailwind.css'
 import type { Metadata } from 'next'
 import { Toaster } from "@/components/ui/sonner"
-import Analytics from '@/components/analytics'
+import Analytics from '@/components/external/analytics'
+import Intercom from '@/components/external/intercom'
 
 export const metadata: Metadata = {
   title: {
@@ -26,7 +27,9 @@ export default function RootLayout({
       </head>
       <body className="text-gray-950 antialiased">
         {children}
+
         <Toaster />
+        <Intercom />
       </body>
     </html>
   )
