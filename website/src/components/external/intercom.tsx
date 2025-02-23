@@ -23,6 +23,11 @@ type IntercomUser = {
   createdAt?: number;
 };
 
+interface IntercomFunction extends Function {
+  c: (args: IArguments) => void;
+  q: any[];
+}
+
 export default function Intercom({ user }: { user?: IntercomUser }) {
   useEffect(() => {
     // Initialize Intercom settings
@@ -44,13 +49,17 @@ export default function Intercom({ user }: { user?: IntercomUser }) {
         ic('update', w.intercomSettings);
       } else {
         var d = document;
-        var i = function() {
-          i.c(arguments);
-        };
-        i.q = [];
-        i.c = function(args) {
-          i.q.push(args);
-        };
+        var i = (function() {
+          function i(this: IntercomFunction) {
+            i.c(arguments);
+          }
+          i.q = [];
+          i.c = function(args) {
+            i.q.push(args);
+          };
+          return i;
+        })() as unknown as IntercomFunction;
+
         w.Intercom = i;
         var l = function() {
           var s = d.createElement('script');
@@ -58,12 +67,12 @@ export default function Intercom({ user }: { user?: IntercomUser }) {
           s.async = true;
           s.src = 'https://widget.intercom.io/widget/zfmc7m57';
           var x = d.getElementsByTagName('script')[0];
-          x.parentNode.insertBefore(s, x);
+          if (x && x.parentNode) {
+            x.parentNode.insertBefore(s, x);
+          }
         };
         if (document.readyState === 'complete') {
           l();
-        } else if (w.attachEvent) {
-          w.attachEvent('onload', l);
         } else {
           w.addEventListener('load', l, false);
         }

@@ -9,7 +9,6 @@ import { toast } from "sonner"
 import { Tables } from "@/src/types/database";
 import { Checkbox } from "@/src/components/ui/checkbox";
 import { Label } from "@/src/components/ui/label";
-import { RefreshCcw } from "lucide-react";
 
 interface IntercomSettings {
   enabled: boolean;
