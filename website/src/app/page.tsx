@@ -9,13 +9,14 @@ import { LogoCluster } from '@/components/logo-cluster'
 import { LogoTimeline } from '@/components/logo-timeline'
 import { Map } from '@/components/map'
 import { Navbar } from '@/components/navbar'
+import { RequestAccess } from '@/components/request-access'
 import { Screenshot } from '@/components/screenshot'
 import { Heading, Subheading } from '@/components/text'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   description:
-    'Radiant helps you sell more by revealing sensitive information about your customers.',
+    'Uncover critical insights from customers conversations using cadetAI'
 }
 
 function Hero() {
@@ -32,7 +33,7 @@ function Hero() {
             Analyze customer conversations to uncover <strong>critical pain points, must-have features,</strong> and <strong>high-impact bugs</strong>—guiding your product roadmap with real customer insights.
           </p>
           <div className="mt-12 flex flex-col gap-x-6 gap-y-4 sm:flex-row">
-            <Button href="#">Request early access</Button>
+            <RequestAccess />
           </div>
         </div>
       </Container>

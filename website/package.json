@@ -12,6 +12,7 @@
   "dependencies": {
     "@headlessui/react": "^2.1.1",
     "@heroicons/react": "^2.1.4",
+    "@notionhq/client": "^2.2.16",
     "@sanity/image-url": "^1.0.2",
     "@sanity/vision": "^3.52.2",
     "clsx": "^2.1.1",
@@ -22,6 +23,7 @@
     "next-sanity": "^0.8.5",
     "react": "^18",
     "react-dom": "^18",
+    "react-hot-toast": "^2.5.2",
     "react-use-measure": "^2.1.1",
     "sanity": "^2.36.6"
   },
