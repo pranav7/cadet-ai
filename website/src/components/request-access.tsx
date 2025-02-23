@@ -48,7 +48,7 @@ export const RequestAccess = () => {
           <DialogPanel className="w-full max-w-lg space-y-4 rounded-lg border bg-white p-8">
             <DialogTitle className="text-xl font-bold">Request Early Access</DialogTitle>
             <Description className="text-gray-600">
-              Join our waitlist to get early access to our platform.
+              Join the waitlist to get early access to cadetAI.
             </Description>
 
             <form onSubmit={handleSubmit} className="space-y-4">
