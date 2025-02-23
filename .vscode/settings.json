@@ -43,7 +43,7 @@
   },
   "eslint.validate": ["html", "javascript", "javascriptreact", "typescript", "typescriptreact"],
   "eslint.workingDirectories": [
-    "./client"
+    "./src"
   ],
   "eslint.format.enable": true,
   "prettier.enable": false,
