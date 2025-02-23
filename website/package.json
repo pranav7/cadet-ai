@@ -13,6 +13,7 @@
     "@headlessui/react": "^2.1.1",
     "@heroicons/react": "^2.1.4",
     "@notionhq/client": "^2.2.16",
+    "@sanity/cli": "^3.76.3",
     "@sanity/image-url": "^1.0.2",
     "@sanity/vision": "^3.52.2",
     "clsx": "^2.1.1",
