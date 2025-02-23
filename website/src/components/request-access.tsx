@@ -3,7 +3,7 @@
 import { Dialog, DialogPanel, DialogTitle, Description } from "@headlessui/react"
 import { Button } from "@/components/button"
 import { useState } from "react"
-import { toast } from 'react-hot-toast'
+import { toast } from 'sonner'
 
 export const RequestAccess = () => {
   const [isOpen, setIsOpen] = useState(false)
@@ -29,7 +29,7 @@ export const RequestAccess = () => {
         throw new Error(data.error || 'Something went wrong')
       }
 
-      toast.success('Thanks for requesting access! We\'ll be in touch soon.')
+      toast.success('Thank you for requesting access! We\'ll be in touch soon.')
       setIsOpen(false)
       setEmail('')
     } catch (error) {
