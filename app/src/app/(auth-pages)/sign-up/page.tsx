@@ -1,10 +1,11 @@
-import { signUpAction } from "@/src/app/(auth-pages)/sign-up/action.js";
-import { FormMessage, Message } from "@/src/components/form-message.jsx";
-import { SubmitButton } from "@/src/components/submit-button.jsx";
-import { Input } from "@/src/components/ui/input.jsx";
-import { Label } from "@/src/components/ui/label.jsx";
+import { signUpAction } from "@/app/(auth-pages)/sign-up/action";
+import { FormMessage } from "@/components/form-message";
+import { SubmitButton } from "@/components/submit-button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import Link from "next/link";
-import { SmtpMessage } from "../smtp-message.jsx";
+import { SmtpMessage } from "@/app/(auth-pages)/smtp-message";
+import type { Message } from "@/types/message";
 
 export default async function Signup(props: {
   searchParams: Promise<Message>;

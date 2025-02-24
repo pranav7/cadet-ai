@@ -1,14 +1,14 @@
 "use client";
 
-import { createClient } from "@/src/utils/supabase/client";
+import { createClient } from "@/utils/supabase/client";
 import { useCallback, useEffect, useState } from "react";
-import { Input } from "@/src/components/ui/input";
-import { Button } from "@/src/components/ui/button";
-import { Sources } from "@/src/constants/sources";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Sources } from "@/constants/sources";
 import { toast } from "sonner"
-import { Tables } from "@/src/types/database";
-import { Checkbox } from "@/src/components/ui/checkbox";
-import { Label } from "@/src/components/ui/label";
+import { Tables } from "@/types/database";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
 interface IntercomSettings {
   enabled: boolean;

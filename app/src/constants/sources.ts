@@ -1,4 +1,4 @@
-import IntercomIcon from "@/app/public/intercom.svg";
+import IntercomIcon from "@/assets/intercom.svg";
 
 export const Sources: Record<string, number> = {
   Intercom: 1,

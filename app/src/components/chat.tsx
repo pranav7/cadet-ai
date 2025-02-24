@@ -1,13 +1,13 @@
 "use client";
 
-import { createClient } from "@/src/utils/supabase/client";
+import { createClient } from "@/utils/supabase/client";
 import { useChat } from "@ai-sdk/react";
-import { Input } from "@/src/components/ui/input";
-import { Button } from "@/src/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { MessageSquareIcon } from "lucide-react";
-import { LoadingDots } from "@/src/components/ui/loading-dots";
-import { Card, CardContent } from "@/src/components/ui/card";
+import { LoadingDots } from "@/components/ui/loading-dots";
+import { Card, CardContent } from "@/components/ui/card";
 
 export function Chat() {
   const supabase = createClient();

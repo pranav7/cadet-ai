@@ -1,8 +1,9 @@
-import { signInAction } from "@/src/app/(auth-pages)/sign-in/action";
-import { FormMessage, Message } from "@/src/components/form-message";
-import { SubmitButton } from "@/src/components/submit-button";
-import { Input } from "@/src/components/ui/input";
-import { Label } from "@/src/components/ui/label";
+import { signInAction } from "./action";
+import { FormMessage } from "@/components/form-message";
+import type { Message } from "@/types/message";
+import { SubmitButton } from "@/components/submit-button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import Link from "next/link";
 
 export default async function Login(props: { searchParams: Promise<Message> }) {

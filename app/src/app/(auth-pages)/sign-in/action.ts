@@ -1,7 +1,7 @@
 "use server";
 
-import { encodedRedirect } from "@/src/utils/utils";
-import { createClient } from "@/src/utils/supabase/server";
+import { encodedRedirect } from "@/utils/utils";
+import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 
 export const signInAction = async (formData: FormData) => {
