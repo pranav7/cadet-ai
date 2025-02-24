@@ -4,6 +4,7 @@ import { Dialog, DialogPanel, DialogTitle, Description } from "@headlessui/react
 import { Button } from "@/components/button"
 import { useState } from "react"
 import { toast } from 'sonner'
+import { sendGAEvent } from '@next/third-parties/google'
 
 export const RequestAccess = () => {
   const [isOpen, setIsOpen] = useState(false)
@@ -30,6 +31,7 @@ export const RequestAccess = () => {
       }
 
       toast.success('Thank you for requesting access! We\'ll be in touch soon.')
+      sendGAEvent('event', 'manual_event_SUBMIT_LEAD_FORM', { email })
       setIsOpen(false)
       setEmail('')
     } catch (error) {
