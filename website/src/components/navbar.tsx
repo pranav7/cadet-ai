@@ -78,7 +78,7 @@ export function Navbar({ banner }: { banner?: React.ReactNode }) {
     <Disclosure as="header" className="pt-12 sm:pt-16">
       <div className="relative flex gap-6">
           <Link href="/" title="Home">
-            <Logo className="h-9" />
+            <Logo className="h-6" />
           </Link>
         {banner && (
           <div className="relative hidden items-center py-3 lg:flex">
