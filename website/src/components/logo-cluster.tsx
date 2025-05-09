@@ -2,7 +2,6 @@
 
 import { clsx } from 'clsx'
 import { motion } from 'framer-motion'
-import { Mark } from './logo'
 
 function Circle({
   size,
@@ -51,14 +50,6 @@ function Circles() {
   )
 }
 
-function MainLogo() {
-  return (
-    <div className="absolute top-32 left-44 flex size-16 items-center justify-center rounded-full bg-white ring-1 shadow-sm ring-black/5">
-      <Mark className="h-9 fill-black" />
-    </div>
-  )
-}
-
 function Logo({
   src,
   left,
@@ -100,7 +91,6 @@ export function LogoCluster() {
     <div aria-hidden="true" className="relative h-full overflow-hidden">
       <Circles />
       <div className="absolute left-1/2 h-full w-[26rem] -translate-x-1/2">
-        <MainLogo />
         <Logo
           src="/logo-cluster/career-builder.svg"
           left={360}
